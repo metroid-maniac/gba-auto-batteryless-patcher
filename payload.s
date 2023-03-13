@@ -42,7 +42,7 @@ write_sram_patched_loop:
     mov r1, # 0x04
     lsl r1, # 24
     sub r1, # 0x10
-    mov r2, # 300
+    mov r2, # 255
     strh r2, [r1, # 0x0a]
     str r0, [r1, # 0x04]
     
