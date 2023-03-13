@@ -45,6 +45,7 @@ write_sram_patched_loop:
     mov r2, # 255
     strh r2, [r1, # 0x0a]
     str r0, [r1, # 0x04]
+    strh r2, [r1, # 0x12]
     
 write_sram_patched_exit:
     mov r0, # 0
