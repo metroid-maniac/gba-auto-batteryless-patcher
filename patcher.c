@@ -94,7 +94,7 @@ int main(int argc, char **argv)
             printf("Installing payload at offset %d", payload_base);
             memcpy(rom, payload, sizeof payload);
             
-            // Patch the ROM entrypoint to install the dummy IRQ handler, and redirect the new entrypoint to the old entrypoint.
+            // Patch the ROM entrypoint to init sram and the dummy IRQ handler, and tell the new entrypoint where the old one was.
             if (rom[3] != 0xea)
             {
                 puts("Unexpected entrypoint instruction");
@@ -102,6 +102,11 @@ int main(int argc, char **argv)
             }
             unsigned long original_entrypoint_offset = rom[0] + rom[1] << 8 + rom[2] << 16;
             unsigned long original_entrypoint_address = 0x08000000 + 8 + (original_entrypoint_offset << 2);
+            // little endian assumed, deal with it
+            ((uint32_t*) rom)[payload_base + 1[(uint32_t*) payload]] = original_entrypoint_address;
+            
+            unsigned long new_entrypoint_address = 0x08000000 + payload_base + 0[(uint32_t*) payload];
+            0[(uint32_t*) rom] = 0xea000000 | (new_entrypoint_address - 0x08000008) >> 2;
 
             // Patch any write functions to install the countdown IRQ handler when needed 
             
