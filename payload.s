@@ -10,6 +10,16 @@ patched_entrypoint:
     mov r0, # 0x04000000
     adr r1, idle_irq_handler
     str r1, [r0, # -4]
+    
+    adr r0, flash_save_sector
+    mov r1, # 0x0e000000
+    add r2, r1, # 0x00010000
+sram_init_loop:
+    ldrb r3, [r0], # 1
+    strb r3, [r1], # 1
+    cmp r1, r2
+    blo sram_init_loop
+    
     ldr pc, original_entrypoint_addr
 
 original_entrypoint_addr:
