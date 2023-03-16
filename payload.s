@@ -72,7 +72,7 @@ countdown_irq_handler:
     # if not vblank IF then user handler
     ldr r1, [r0, # 0x200]
     tst r1, # 0x00010000
-    ldrne pc, [r0, # -12]
+    ldreq pc, [r0, # -12]
     
     # if (--counter) then user handler
     ldrh r1, [r0, # - 6]
