@@ -78,7 +78,7 @@ countdown_irq_handler:
     ldrh r1, [r0, # - 6]
     subs r1, # 1
     strh r1, [r0, # - 6]
-    ldreq pc, [r0, # -12]
+    ldrne pc, [r0, # -12]
 
     # countdown expired. time to flush sram to flash
     # first switch back into user mode with interrupts still masked so there is enough stack.
