@@ -1,17 +1,17 @@
 .arm
-.align 4
+.balign 4
 
 # the following values are exposed for the benefit of the patcher program.
     .word patched_entrypoint
     .word original_entrypoint_addr
-    .word write_sram_patched
+    .word write_sram_patched + 1
 
 patched_entrypoint:
     mov r0, # 0x04000000
     adr r1, idle_irq_handler
     str r1, [r0, # -4]
     
-    adr r0, flash_save_sector
+    adrl r0, flash_save_sector
     mov r1, # 0x0e000000
     add r2, r1, # 0x00010000
 sram_init_loop:
@@ -83,17 +83,18 @@ countdown_irq_handler:
     # countdown expired. time to flush sram to flash
     # first switch back into user mode with interrupts still masked so there is enough stack.
     # also disable sound.
-    mrs r1, cpsr
-    mrs r2, spsr
-    ldrb r3, [r0, # 0x84]
-    push {r0, r1, r2, r3, lr}
-    mov r1, # 0x009f
-    msr cpsr, r1
+#    mrs r1, cpsr
+#    mrs r2, spsr
+#    ldrb r3, [r0, # 0x84]
+#	strb r0, [r0, # 0x84]
+#    push {r0, r1, r2, r3, lr}
+#    mov r1, # 0x009f
+#    msr cpsr, r1
     
-    pop {r0, r1, r2, r3, lr}
-    msr cpsr, r1
-    msr spsr, r2
-    strb r3, [r0, # 0x84]
+#    pop {r0, r1, r2, r3, lr}
+#    msr cpsr, r1
+#    msr spsr, r2
+#    strb r3, [r0, # 0x84]
     
     # Disable green swap and reinstall idle irq
     strh r0, [r0, # 0x02]
@@ -106,5 +107,6 @@ idle_irq_handler:
 .ascii "<3 from Maniac"
 
 # patcher program will have to ensure this is actually aligned enough
-.align 4
+# This alignment was chosen so the assembler? linker? doesn't pad more than needed.
+.balign 4
     flash_save_sector:
