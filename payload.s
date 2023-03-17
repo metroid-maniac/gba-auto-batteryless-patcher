@@ -80,22 +80,54 @@ countdown_irq_handler:
     strh r1, [r0, # - 6]
     ldrne pc, [r0, # -12]
 
-    # countdown expired. time to flush sram to flash
-    # first switch back into user mode with interrupts still masked so there is enough stack.
-    # also disable sound.
-#    mrs r1, cpsr
-#    mrs r2, spsr
-#    ldrb r3, [r0, # 0x84]
-#	strb r0, [r0, # 0x84]
-#    push {r0, r1, r2, r3, lr}
-#    mov r1, # 0x009f
-#    msr cpsr, r1
-    
-#    pop {r0, r1, r2, r3, lr}
-#    msr cpsr, r1
-#    msr spsr, r2
-#    strb r3, [r0, # 0x84]
-    
+    # countdown expired.
+    # first switch back into user mode to regain significant stack space
+	mov r3, # 0x9f
+	msr cpsr, r3
+	
+	# save sound state then disable it
+	ldrh r3, [r0, # 0x0084]
+	push {r3}
+	strh r0, [r0, # 0x0084]
+	
+	# save DMAs state then disable them
+	ldrh r3, [r0, # 0x00BA]
+	push {r3}
+	strh r0, [r0, # 0x00BA]
+	ldrh r3, [r0, # 0x00C6]
+	push {r3}
+	strh r0, [r0, # 0x00C6]
+	ldrh r3, [r0, # 0x00d2]
+	push {r3}
+	strh r0, [r0, # 0x00d2]
+	ldrh r3, [r0, # 0x00de]
+	push {r3}
+	strh r0, [r0, # 0x00de]
+	
+	#  a "long" wait
+	mov r3, # 0x200000
+	subs r3, # 1
+	cmp r3, #0
+	bne (.-8)
+	
+	# restore DMAs state
+	pop {r3}
+	strh r3, [r0, # 0x00de]
+    pop {r3}
+	strh r3, [r0, # 0x00d2]
+	pop {r3}
+	strh r3, [r0, # 0x00c6]
+	pop {r3}
+	strh r3, [r0, # 0x00ba]
+
+    # restore sound state
+	pop {r3}
+	strh r3, [r0, # 0x0084]
+
+    # restore previous irq mode
+    mov r3, # 0x92
+    msr cpsr, r3
+	
     # Disable green swap and reinstall idle irq
     strh r0, [r0, # 0x02]
     adr r1, idle_irq_handler
