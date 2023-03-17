@@ -10,7 +10,7 @@ patched_entrypoint:
     mov r0, # 0x04000000
     adr r1, idle_irq_handler
     str r1, [r0, # -4]
-    
+
     adrl r0, flash_save_sector
     mov r1, # 0x0e000000
     add r2, r1, # 0x00010000
@@ -19,7 +19,7 @@ sram_init_loop:
     strb r3, [r1], # 1
     cmp r1, r2
     blo sram_init_loop
-    
+
     ldr pc, original_entrypoint_addr
 
 original_entrypoint_addr:
@@ -60,20 +60,20 @@ write_sram_patched_loop:
     str r0, [r1, # 0x0c]
     # Set green swap as a visual indicator that the countdown has begun
     strh r2, [r1, # 0x12]
-    
+
 write_sram_patched_exit:
     mov r0, # 0
     pop {r4, r5}
     bx lr
 
 .arm
-# IRQ handlers are called with 0x04000000 in r0 which is handy! 
+# IRQ handlers are called with 0x04000000 in r0 which is handy!
 countdown_irq_handler:
     # if not vblank IF then user handler
     ldr r1, [r0, # 0x200]
     tst r1, # 0x00010000
     ldreq pc, [r0, # -12]
-    
+
     # if (--counter) then user handler
     ldrh r1, [r0, # - 6]
     subs r1, # 1
@@ -82,60 +82,65 @@ countdown_irq_handler:
 
     # countdown expired.
     # first switch back into user mode to regain significant stack space
-	mov r3, # 0x9f
-	msr cpsr, r3
-	
-	# save sound state then disable it
-	ldrh r3, [r0, # 0x0084]
-	push {r3}
-	strh r0, [r0, # 0x0084]
-	
-	# save DMAs state then disable them
-	ldrh r3, [r0, # 0x00BA]
-	push {r3}
-	strh r0, [r0, # 0x00BA]
-	ldrh r3, [r0, # 0x00C6]
-	push {r3}
-	strh r0, [r0, # 0x00C6]
-	ldrh r3, [r0, # 0x00d2]
-	push {r3}
-	strh r0, [r0, # 0x00d2]
-	ldrh r3, [r0, # 0x00de]
-	push {r3}
-	strh r0, [r0, # 0x00de]
-	
-	#  a "long" wait
-	mov r3, # 0x200000
-	subs r3, # 1
-	cmp r3, #0
-	bne (.-8)
-	
-	# restore DMAs state
-	pop {r3}
-	strh r3, [r0, # 0x00de]
+    mov r3, # 0x9f
+    msr cpsr, r3
+
+    # save sound state then disable it
+    ldrh r3, [r0, # 0x0084]
+    push {r3}
+    strh r0, [r0, # 0x0084]
+
+    # save DMAs state then disable them
+    ldrh r3, [r0, # 0x00BA]
+    push {r3}
+    strh r0, [r0, # 0x00BA]
+    ldrh r3, [r0, # 0x00C6]
+    push {r3}
+    strh r0, [r0, # 0x00C6]
+    ldrh r3, [r0, # 0x00d2]
+    push {r3}
+    strh r0, [r0, # 0x00d2]
+    ldrh r3, [r0, # 0x00de]
+    push {r3}
+    strh r0, [r0, # 0x00de]
+
+    push {lr}
+
+flush_sram_done:
+    pop {lr}
+    mov r0, #0x04000000
+
+    # restore DMAs state
     pop {r3}
-	strh r3, [r0, # 0x00d2]
-	pop {r3}
-	strh r3, [r0, # 0x00c6]
-	pop {r3}
-	strh r3, [r0, # 0x00ba]
+    strh r3, [r0, # 0x00de]
+    pop {r3}
+    strh r3, [r0, # 0x00d2]
+    pop {r3}
+    strh r3, [r0, # 0x00c6]
+    pop {r3}
+    strh r3, [r0, # 0x00ba]
 
     # restore sound state
-	pop {r3}
-	strh r3, [r0, # 0x0084]
+    pop {r3}
+    strh r3, [r0, # 0x0084]
 
     # restore previous irq mode
     mov r3, # 0x92
     msr cpsr, r3
-	
-    # Disable green swap and reinstall idle irq
+
+    # Disable green swap
     strh r0, [r0, # 0x02]
     adr r1, idle_irq_handler
     str r1, [r0, # - 4]
 
 idle_irq_handler:
     ldr pc, [r0, # -12]
-    
+
+is_22xx:
+
+is_22xx_end:
+
+
 .ascii "<3 from Maniac"
 
 # patcher program will have to ensure this is actually aligned enough
