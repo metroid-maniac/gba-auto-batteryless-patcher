@@ -1,6 +1,8 @@
+#include <errno.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <string.h>
 
 #include "payload.h"
 
@@ -8,6 +10,10 @@ FILE *romfile;
 uint32_t romsize;
 uint8_t rom[0x02000000];
 char signature[] = "<3 from Maniac";
+
+// ldr r3, [pc, # 0]; bx r3
+static unsigned char thumb_branch_thunk[] = { 0x00, 0x4b, 0x18, 0x47 };
+static unsigned char write_sram_signature[] = { 0x30, 0xB5, 0x05, 0x1C, 0x0C, 0x1C, 0x13, 0x1C, 0x0B, 0x4A, 0x10, 0x88, 0x0B, 0x49, 0x08, 0x40};
 
 static uint8_t *memfind(uint8_t *haystack, size_t haystack_size, uint8_t *needle, size_t needle_size, int stride)
 {
@@ -32,7 +38,8 @@ int main(int argc, char **argv)
     // Open ROM file
     if (!(romfile = fopen(argv[1], "rb+")))
     {
-        puts("Could not open file"):
+        puts("Could not open file");
+		puts(strerror(errno));
         return 1;
     }
     
@@ -74,11 +81,11 @@ int main(int argc, char **argv)
     }
     
     // Find a location to insert the payload immediately before a 0x10000 byte sector
-    for (int payload_base = romsize - 0x10000 - sizeof payload; payload_base >= 0; payload_base -= 0x10000)
+    for (int payload_base = romsize - 0x10000 - payload_bin_len; payload_base >= 0; payload_base -= 0x10000)
     {
         int is_all_zeroes = 1;
         int is_all_ones = 1;
-        for (int i = 0; i < 0x10000 + sizeof payload; ++i)
+        for (int i = 0; i < 0x10000 + payload_bin_len; ++i)
         {
             if (rom[payload_base+i] != 0)
             {
@@ -91,8 +98,8 @@ int main(int argc, char **argv)
         }
         if (is_all_zeroes || is_all_ones)
         {
-            printf("Installing payload at offset %d", payload_base);
-            memcpy(rom, payload, sizeof payload);
+            printf("Installing payload at offset %x\n", payload_base);
+            memcpy(rom + payload_base, payload_bin, payload_bin_len);
             
             // Patch the ROM entrypoint to init sram and the dummy IRQ handler, and tell the new entrypoint where the old one was.
             if (rom[3] != 0xea)
@@ -103,14 +110,27 @@ int main(int argc, char **argv)
             unsigned long original_entrypoint_offset = rom[0] + rom[1] << 8 + rom[2] << 16;
             unsigned long original_entrypoint_address = 0x08000000 + 8 + (original_entrypoint_offset << 2);
             // little endian assumed, deal with it
-            ((uint32_t*) rom)[payload_base + 1[(uint32_t*) payload]] = original_entrypoint_address;
+            ((uint32_t*) rom)[payload_base + 1[(uint32_t*) payload_bin]] = original_entrypoint_address;
             
-            unsigned long new_entrypoint_address = 0x08000000 + payload_base + 0[(uint32_t*) payload];
+            unsigned long new_entrypoint_address = 0x08000000 + payload_base + 0[(uint32_t*) payload_bin];
             0[(uint32_t*) rom] = 0xea000000 | (new_entrypoint_address - 0x08000008) >> 2;
 
+
             // Patch any write functions to install the countdown IRQ handler when needed 
+			{
+				uint8_t *write_location;
+				if (write_location = memfind(rom, romsize, write_sram_signature, sizeof write_sram_signature, 2))
+				{
+			        printf("WriteSram identified at offset %lx, patching\n", write_location - rom);
+					memcpy(write_location, thumb_branch_thunk, sizeof thumb_branch_thunk);
+					1[(uint32_t*) write_location] = 0x08000000 + payload_base + 2[(uint32_t*) payload_bin];
+				}
+			}
+			
             
             // Flush all changes to file
+		    fseek(romfile, 0, SEEK_SET);
+			fwrite(rom, 1, romsize, romfile);
             
             return 0;
         }
