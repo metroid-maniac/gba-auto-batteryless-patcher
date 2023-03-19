@@ -125,6 +125,11 @@ int main(int argc, char **argv)
                     memcpy(write_location, thumb_branch_thunk, sizeof thumb_branch_thunk);
                     1[(uint32_t*) write_location] = 0x08000000 + payload_base + 2[(uint32_t*) payload_bin];
                 }
+				else 
+				{
+					puts("Could not find a write function to hook. Are you sure the game has save functionality?");
+					return 1;
+				}
             }
 
 
