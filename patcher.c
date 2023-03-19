@@ -14,6 +14,7 @@ char signature[] = "<3 from Maniac";
 // ldr r3, [pc, # 0]; bx r3
 static unsigned char thumb_branch_thunk[] = { 0x00, 0x4b, 0x18, 0x47 };
 static unsigned char write_sram_signature[] = { 0x30, 0xB5, 0x05, 0x1C, 0x0C, 0x1C, 0x13, 0x1C, 0x0B, 0x4A, 0x10, 0x88, 0x0B, 0x49, 0x08, 0x40};
+static unsigned char write_eeprom_signature[] = { 0x70, 0xB5, 0x00, 0x04, 0x0A, 0x1C, 0x40, 0x0B, 0xE0, 0x21, 0x09, 0x05, 0x41, 0x18, 0x07, 0x31, 0x00, 0x23, 0x10, 0x78};
 
 static uint8_t *memfind(uint8_t *haystack, size_t haystack_size, uint8_t *needle, size_t needle_size, int stride)
 {
@@ -128,6 +129,12 @@ int main(int argc, char **argv)
                     memcpy(write_location, thumb_branch_thunk, sizeof thumb_branch_thunk);
                     1[(uint32_t*) write_location] = 0x08000000 + payload_base + 2[(uint32_t*) payload_bin];
                 }
+				else if (write_location = memfind(rom, romsize, write_eeprom_signature, sizeof write_eeprom_signature, 2))
+				{
+					printf("SRAM-patched ProgramEepromDword identified at offset %lx, patching\n", write_location - rom);
+					memcpy(write_location, thumb_branch_thunk, sizeof thumb_branch_thunk);
+                    1[(uint32_t*) write_location] = 0x08000000 + payload_base + 3[(uint32_t*) payload_bin];
+				}
 				else
 				{
 					puts("Could not find a write function to hook. Are you sure the game has save functionality?");

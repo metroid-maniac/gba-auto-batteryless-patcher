@@ -5,6 +5,7 @@
     .word patched_entrypoint
     .word original_entrypoint_addr
     .word write_sram_patched + 1
+	.word write_eeprom_patched + 1
 
 patched_entrypoint:
     mov r0, # 0x04000000
@@ -65,6 +66,32 @@ write_sram_patched_exit:
     mov r0, # 0
     pop {r4, r5}
     bx lr
+
+# r0 = eeprom address, r1 = src data (needs byte swapping, 8 bytes)
+write_eeprom_patched:
+    push {r4, lr}
+	mov r2, r1
+	add r2, # 8
+	mov r3, sp
+write_eeprom_patched_byte_swap_loop:
+    ldrb r4, [r1]
+	add r1, # 1
+	sub r3, # 1
+	strb r4, [r3]
+	cmp r1, r2
+	bne write_eeprom_patched_byte_swap_loop
+	
+	mov r1, # 0x0e
+	lsl r1, # 24
+	lsl r0, # 3
+	add r1, r0
+	mov r2, # 8
+	mov r0, r3
+	mov sp, r3
+	bl write_sram_patched
+	
+	add sp, # 8
+	pop {r4, pc}
 
 .arm
 # IRQ handlers are called with 0x04000000 in r0 which is handy!
