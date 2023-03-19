@@ -107,8 +107,11 @@ int main(int argc, char **argv)
                 puts("Unexpected entrypoint instruction");
                 return 1;
             }
-            unsigned long original_entrypoint_offset = rom[0] + rom[1] << 8 + rom[2] << 16;
+            unsigned long original_entrypoint_offset = rom[0];
+			original_entrypoint_offset |= rom[1] << 8;
+			original_entrypoint_offset |= rom[2] << 16;
             unsigned long original_entrypoint_address = 0x08000000 + 8 + (original_entrypoint_offset << 2);
+			printf("Original offset was %lx, original entrypoint was %lx\n", original_entrypoint_offset, original_entrypoint_address);
             // little endian assumed, deal with it
             ((uint32_t*) rom)[(payload_base + 1[(uint32_t*) payload_bin]) >> 2] = original_entrypoint_address;
 
