@@ -110,7 +110,7 @@ int main(int argc, char **argv)
             unsigned long original_entrypoint_offset = rom[0] + rom[1] << 8 + rom[2] << 16;
             unsigned long original_entrypoint_address = 0x08000000 + 8 + (original_entrypoint_offset << 2);
             // little endian assumed, deal with it
-            ((uint32_t*) rom)[payload_base + 1[(uint32_t*) payload_bin]] = original_entrypoint_address;
+            ((uint32_t*) rom)[(payload_base + 1[(uint32_t*) payload_bin]) >> 2] = original_entrypoint_address;
 
             unsigned long new_entrypoint_address = 0x08000000 + payload_base + 0[(uint32_t*) payload_bin];
             0[(uint32_t*) rom] = 0xea000000 | (new_entrypoint_address - 0x08000008) >> 2;
@@ -125,7 +125,7 @@ int main(int argc, char **argv)
                     memcpy(write_location, thumb_branch_thunk, sizeof thumb_branch_thunk);
                     1[(uint32_t*) write_location] = 0x08000000 + payload_base + 2[(uint32_t*) payload_bin];
                 }
-				else 
+				else
 				{
 					puts("Could not find a write function to hook. Are you sure the game has save functionality?");
 					return 1;
