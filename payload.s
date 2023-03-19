@@ -105,6 +105,12 @@ countdown_irq_handler:
     strh r0, [r0, # 0x00de]
 
     push {lr}
+    
+    # Try flushing for various flash chips
+    adr r0, flash_save_sector
+    adr r1, try_22xx
+    adr r2, try_22xx_end
+    bl run_from_ram
 
 flush_sram_done:
     pop {lr}
@@ -119,6 +125,7 @@ flush_sram_done:
     strh r3, [r0, # 0x00c6]
     pop {r3}
     strh r3, [r0, # 0x00ba]
+
 
     # restore sound state
     pop {r3}
@@ -136,9 +143,104 @@ flush_sram_done:
 idle_irq_handler:
     ldr pc, [r0, # -12]
 
-is_22xx:
+run_from_ram:
+    push {r4, lr}
+    mov r4, sp
+    
+run_from_ram_loop:    
+    ldr r3, [r2, # -4]!
+    push {r3}
+    cmp r1, r2
+    bne run_from_ram_loop
+    
+    mov lr, pc
+    bx sp
+    
+    mov sp, r4
+    pop {r4, lr}
+    bx lr
 
-is_22xx_end:
+try_22xx:
+    push {r4, r5, r6, r7}
+    mov r1, # 0x08000000
+    add r2, r1, # 0x00000aa
+    add r2, # 0x00000a00
+    add r3, r1, # 0x00000055
+    add r3, # 0x00000500
+    
+    mov r4, # 0x00a9
+    strh r4, [r2]
+    mov r4, # 0x0056
+    strh r4, [r3]
+    mov r4, # 0x0090
+    strh r4, [r2]
+    nop
+    ldrh r4, [r1, # 2]
+    lsr r4, # 8
+    cmp r4, # 0x22
+    mov r4, # 0xf0
+    strh r4, [r1]
+    
+    popne {r4, r5, r6, r7}
+    bxne lr
+    
+    mov r4, # 0x00a9
+    strh r4, [r2]
+    mov r4, # 0x0056
+    strh r4, [r3]
+    mov r4, # 0x0080
+    strh r4, [r2]
+    mov r4, # 0x00a9
+    strh r4, [r2]
+    mov r4, # 0x0056
+    strh r4, [r3]
+    mov r4, # 0x0030
+    strh r4, [r0]
+    
+    ldrsh r4, [r0]
+    cmp r4, # -1
+    beq (.-8)
+    
+    ldrsh r4, [r0]
+    cmp r4, # -1
+    bne (.-8)
+    
+    mov r4, # 0x000f0
+    strh r4, [r1]
+ 
+    mov r5, # 0x0e000000
+    add r6, r5, # 0x00010000
+try_22xx_write_all_loop:
+    ldrb r7, [r5], # 1
+    ldrb r4, [r5], # 1
+    orr r7, r4, LSL # 8
+
+    mov r4, # 0x00a9
+    strh r4, [r2]
+    mov r4, # 0x0056
+    strh r4, [r3]
+    mov r4, # 0x00a0
+    strh r4, [r2] 
+    nop
+    strh r7, [r0], # 2
+    nop
+    
+    ldrh r4, [r0, # -2]
+    cmp r4, r7
+    bne (.-8)
+    
+    mov r4, # 0x00f0
+    strh r4, [r1]
+    
+    cmp r5, r6
+    bne try_22xx_write_all_loop
+    
+    mov r4, # 0x00f0
+    strh r4, [r1]
+    
+    pop {r4, r5, r6, r7}
+    bx lr
+try_22xx_end:
 
 
 .ascii "<3 from Maniac"

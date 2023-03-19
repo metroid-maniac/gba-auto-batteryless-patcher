@@ -80,12 +80,12 @@ int main(int argc, char **argv)
         }
     }
 
-    // Find a location to insert the payload immediately before a 0x10000 byte sector
-    for (int payload_base = romsize - 0x10000 - payload_bin_len; payload_base >= 0; payload_base -= 0x10000)
+    // Find a location to insert the payload immediately before a 0x20000 byte sector
+    for (int payload_base = romsize - 0x20000 - payload_bin_len; payload_base >= 0; payload_base -= 0x20000)
     {
         int is_all_zeroes = 1;
         int is_all_ones = 1;
-        for (int i = 0; i < 0x10000 + payload_bin_len; ++i)
+        for (int i = 0; i < 0x20000 + payload_bin_len; ++i)
         {
             if (rom[payload_base+i] != 0)
             {
