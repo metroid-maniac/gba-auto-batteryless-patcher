@@ -6,6 +6,7 @@
     .word original_entrypoint_addr
     .word write_sram_patched + 1
 	.word write_eeprom_patched + 1
+	.word write_flash_patched + 1
 
 patched_entrypoint:
     mov r0, # 0x04000000
@@ -28,6 +29,26 @@ original_entrypoint_addr:
     .word 0x080000c0
 
 .thumb
+# r0 = sector number, # r1 = source data 0x1000 bytes
+write_flash_patched:
+    lsr r2, r0, # 4
+	mov r3, # 0x09
+	lsl r3, # 24
+	strh r2, [r3]
+	
+    lsl r0, # 12
+	mov r2, # 0x0e
+	lsl r2, # 24
+	orr r0, r2
+	mov r2, # 0x1
+	lsl r2, # 12
+	mov r3, r0
+	mov r0, r1
+	mov r1, r3
+	
+	b write_sram_patched
+
+
 # r0 = src, r1 = dst, r2 = size. Check if change before writing, only install irq if change
 # unoptimised as hell, but I don't care for now.
 write_sram_patched:
@@ -92,6 +113,7 @@ write_eeprom_patched_byte_swap_loop:
 	
 	add sp, # 8
 	pop {r4, pc}
+	
 
 .arm
 # IRQ handlers are called with 0x04000000 in r0 which is handy!
