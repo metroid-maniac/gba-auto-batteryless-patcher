@@ -99,7 +99,7 @@ int main(int argc, char **argv)
         }
         if (is_all_zeroes || is_all_ones)
         {
-            printf("Installing payload at offset %x\n", payload_base);
+            printf("Installing payload at offset %x, save file stored at %x\n", payload_base, payload_base + payload_bin_len);
             memcpy(rom + payload_base, payload_bin, payload_bin_len);
 
             // Patch the ROM entrypoint to init sram and the dummy IRQ handler, and tell the new entrypoint where the old one was.
