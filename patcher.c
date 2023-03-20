@@ -137,7 +137,7 @@ int main(int argc, char **argv)
 				}
 				else
 				{
-					puts("Could not find a write function to hook. Are you sure the game has save functionality?");
+					puts("Could not find a write function to hook. Are you sure the game has save functionality and has been SRAM patched with GBATA?");
 					return 1;
 				}
             }
