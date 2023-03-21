@@ -300,8 +300,6 @@ try_intel:
     mov r1, # 0x08000000
     mov r2, # 0x00FF
     strh r2, [r1]
-    mov r2, # 0x0050
-    strh r2, [r1]
     mov r2, #0x0090
     strh r2, [r1]
     nop
@@ -312,9 +310,11 @@ try_intel:
     strh r2, [r1]
     bxne lr
     
-    mov r2, # 0x0050
-    strh r2, [r0]
     mov r2, # 0x00ff
+    strh r2, [r0]
+    mov r2, # 0x0060
+    strh r2, [r0]
+    mov r2, # 0x00d0
     strh r2, [r0]
     mov r2, # 0x0020
     strh r2, [r0]
@@ -323,12 +323,11 @@ try_intel:
     nop
     
     ldrh r2, [r0]
-    cmp r2, # 0
+    cmp r2, # 0x0080
     bne (.-8)
     
-    ldrh r2, [r0]
-    tst r2, # 0x0080
-    beq (.-8)
+    mov r2, # 0x00ff
+    strh r2, [r0]
     
     push {r4, r5}
     mov r4, # 0x0e000000
@@ -337,27 +336,15 @@ try_intel_write_all_loop:
     ldrb r3, [r4], # 1
     ldrb r2, [r4], # 1
     orr r3, r2, LSL # 8
-    mov r2, # 0x0050
-    strh r2, [r0]
-    mov r2, # 0x00ff
-    strh r2, [r0]
     mov r2, # 0x0040
     strh r2, [r0]
     nop
     strh r3, [r0]
     nop
     
-    ldrsh r2, [r0]
-    cmp r2, # -1
-    beq (.-8)
-    
     ldrh r2, [r0]
-    cmp r2, # 0
-    beq (.-8)
-    
-    ldrh r2, [r0]
-    tst r2, # 0x0080
-    beq (.-8)
+    cmp r2, # 0x0080
+    bne (.-8)
     
     mov r2, # 0x00ff
     strh r2, [r0], # 2
