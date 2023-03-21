@@ -160,6 +160,11 @@ countdown_irq_handler:
     adr r1, try_22xx
     adr r2, try_22xx_end
     bl run_from_ram
+    
+    adr r0, flash_save_sector
+    adr r1, try_intel
+    adr r2, try_intel_end
+    bl run_from_ram
 
 flush_sram_done:
     pop {lr}
@@ -291,6 +296,78 @@ try_22xx_write_all_loop:
     bx lr
 try_22xx_end:
 
+try_intel:
+    mov r1, 0x08000000
+    mov r2, # 0x00FF
+    strh r2, [r1]
+    mov r2, # 0x0050
+    strh r2, [r1]
+    mov r2, #0x0090
+    strh r2, [r1]
+    nop
+    ldrh r2, [r1, # 2]
+    lsr r2, # 8
+    cmp r2, # 0x0088
+    mov r2, # 0x00FF
+    strh r2, [r1]
+    bxne lr
+    
+    mov r2, # 0x0050
+    strh r2, [r0]
+    mov r2, # 0x00ff
+    strh r2, [r0]
+    mov r2, # 0x0020
+    strh r2, [r0]
+    mov r2, # 0x00d0
+    strh r2, [r0]
+    nop
+    
+    ldrh r2, [r0]
+    cmp r2, # 0
+    bne (.-8)
+    
+    ldrh r2, [r0]
+    tst r2, # 0x0080
+    beq (.-8)
+    
+    push {r4, r5}
+    mov r4, # 0x0e000000
+    add r5, r4 # 0x00010000
+try_intel_write_all_loop:
+    ldrb r3, [r4], # 1
+    ldrb r2, [r4], # 1
+    orr r3, r2, LSL # 8
+    mov r2, # 0x0050
+    strh r2, [r0]
+    mov r2, # 0x00ff
+    strh r2, [r0]
+    mov r2, # 0x0040
+    strh r2, [r0]
+    nop
+    strh r3, [r0]
+    nop
+    
+    ldrsh r2, [r0]
+    cmp r2, # -1
+    beq (.-8)
+    
+    ldrh r2, [r0]
+    cmp r2, # 0
+    beq (-.8)
+    
+    ldrh r2, [r0]
+    tst r2, # 0x0080
+    beq (-.8)
+    
+    mov r2, # 0x00ff
+    strh r2, [r0], # 2
+    cmp r4, r5
+    blo try_intel_write_all_loop
+    
+    pop {r4, r5}
+    
+    bx lr
+try_intel_end:
 
 .ascii "<3 from Maniac"
 
