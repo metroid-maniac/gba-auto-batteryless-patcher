@@ -297,7 +297,7 @@ try_22xx_write_all_loop:
 try_22xx_end:
 
 try_intel:
-    mov r1, 0x08000000
+    mov r1, # 0x08000000
     mov r2, # 0x00FF
     strh r2, [r1]
     mov r2, # 0x0050
@@ -332,7 +332,7 @@ try_intel:
     
     push {r4, r5}
     mov r4, # 0x0e000000
-    add r5, r4 # 0x00010000
+    add r5, r4, # 0x00010000
 try_intel_write_all_loop:
     ldrb r3, [r4], # 1
     ldrb r2, [r4], # 1
@@ -353,11 +353,11 @@ try_intel_write_all_loop:
     
     ldrh r2, [r0]
     cmp r2, # 0
-    beq (-.8)
+    beq (.-8)
     
     ldrh r2, [r0]
     tst r2, # 0x0080
-    beq (-.8)
+    beq (.-8)
     
     mov r2, # 0x00ff
     strh r2, [r0], # 2
