@@ -37,6 +37,8 @@ int main(int argc, char **argv)
         puts("Wrong number of args");
         return 1;
     }
+	
+	memset(rom, 0x00ff, sizeof rom);
 
     // Open ROM file
     if (!(romfile = fopen(argv[1], "rb+")))
@@ -58,7 +60,9 @@ int main(int argc, char **argv)
 
     if (romsize & 0x1ffff)
     {
-        puts("ROM not sufficiently aligned - don't trim it");
+		puts("ROM has been trimmed and is misaligned. Padding to 128KB alignment");
+		romsize &= ~0x1ffff;
+		romsize += 0x20000;
     }
 
     fseek(romfile, 0, SEEK_SET);
