@@ -83,12 +83,14 @@ int main(int argc, char **argv)
     {
         if (!memcmp(p, old_irq_addr, sizeof old_irq_addr))
         {
+			printf("Found a reference to the IRQ handler address at %lx, patching\n", p - rom);
             memcpy(p, new_irq_addr, sizeof new_irq_addr);
         }
     }
 
     // Find a location to insert the payload immediately before a 0x20000 byte sector
-    for (int payload_base = romsize - 0x20000 - payload_bin_len; payload_base >= 0; payload_base -= 0x20000)
+	int payload_base;
+    for (payload_base = romsize - 0x20000 - payload_bin_len; payload_base >= 0; payload_base -= 0x20000)
     {
         int is_all_zeroes = 1;
         int is_all_ones = 1;
@@ -105,69 +107,85 @@ int main(int argc, char **argv)
         }
         if (is_all_zeroes || is_all_ones)
         {
-            printf("Installing payload at offset %x, save file stored at %x\n", payload_base, payload_base + payload_bin_len);
-            memcpy(rom + payload_base, payload_bin, payload_bin_len);
-
-            // Patch the ROM entrypoint to init sram and the dummy IRQ handler, and tell the new entrypoint where the old one was.
-            if (rom[3] != 0xea)
-            {
-                puts("Unexpected entrypoint instruction");
-                return 1;
-            }
-            unsigned long original_entrypoint_offset = rom[0];
-			original_entrypoint_offset |= rom[1] << 8;
-			original_entrypoint_offset |= rom[2] << 16;
-            unsigned long original_entrypoint_address = 0x08000000 + 8 + (original_entrypoint_offset << 2);
-			printf("Original offset was %lx, original entrypoint was %lx\n", original_entrypoint_offset, original_entrypoint_address);
-            // little endian assumed, deal with it
-            ((uint32_t*) rom)[(payload_base + 1[(uint32_t*) payload_bin]) >> 2] = original_entrypoint_address;
-
-            unsigned long new_entrypoint_address = 0x08000000 + payload_base + 0[(uint32_t*) payload_bin];
-            0[(uint32_t*) rom] = 0xea000000 | (new_entrypoint_address - 0x08000008) >> 2;
-
-
-            // Patch any write functions to install the countdown IRQ handler when needed
-            {
-                uint8_t *write_location;
-                if (write_location = memfind(rom, romsize, write_sram_signature, sizeof write_sram_signature, 2))
-                {
-                    printf("WriteSram identified at offset %lx, patching\n", write_location - rom);
-                    memcpy(write_location, thumb_branch_thunk, sizeof thumb_branch_thunk);
-                    1[(uint32_t*) write_location] = 0x08000000 + payload_base + 2[(uint32_t*) payload_bin];
-                }
-				else if (write_location = memfind(rom, romsize, write_eeprom_signature, sizeof write_eeprom_signature, 2))
-				{
-					printf("SRAM-patched ProgramEepromDword identified at offset %lx, patching\n", write_location - rom);
-					memcpy(write_location, thumb_branch_thunk, sizeof thumb_branch_thunk);
-                    1[(uint32_t*) write_location] = 0x08000000 + payload_base + 3[(uint32_t*) payload_bin];
-				}
-				else if (write_location = memfind(rom, romsize, write_flash_signature, sizeof write_flash_signature, 2))
-				{
-					printf("SRAM-patched flash write function identified at offset %lx\n", write_location - rom);
-					memcpy(write_location, thumb_branch_thunk, sizeof thumb_branch_thunk);
-                    1[(uint32_t*) write_location] = 0x08000000 + payload_base + 4[(uint32_t*) payload_bin];
-				}
-				else if (write_location = memfind(rom, romsize, write_flash2_signature, sizeof write_flash2_signature, 2))
-				{
-					printf("SRAM-patched flash write function identified at offset %lx\n", write_location - rom);
-					memcpy(write_location, thumb_branch_thunk, sizeof thumb_branch_thunk);
-                    1[(uint32_t*) write_location] = 0x08000000 + payload_base + 4[(uint32_t*) payload_bin];
-				}
-				else 
-				{
-					puts("Could not find a write function to hook. Are you sure the game has save functionality and has been SRAM patched with GBATA?");
-					return 1;
-				}
-            }
-
-
-            // Flush all changes to file
-            fseek(romfile, 0, SEEK_SET);
-            fwrite(rom, 1, romsize, romfile);
-
-            return 0;
-        }
+           break;
+		}
     }
-    puts("Could not find a location to inject the payload");
-    return 1;
+	if (payload_base < 0)
+	{
+		puts("ROM too small to install payload.");
+		if (romsize + 0x40000 > 0x2000000)
+		{
+			puts("ROM alraedy max size. Cannot expand. Cannot install payload");
+			return 1;
+		}
+		else
+		{
+			puts("Expanding ROM");
+			romsize += 0x40000;
+			payload_base = romsize - 0x20000;
+		}
+	}
+	
+	printf("Installing payload at offset %x, save file stored at %x\n", payload_base, payload_base + payload_bin_len);
+	memcpy(rom + payload_base, payload_bin, payload_bin_len);
+
+	// Patch the ROM entrypoint to init sram and the dummy IRQ handler, and tell the new entrypoint where the old one was.
+	if (rom[3] != 0xea)
+	{
+		puts("Unexpected entrypoint instruction");
+		return 1;
+	}
+	unsigned long original_entrypoint_offset = rom[0];
+	original_entrypoint_offset |= rom[1] << 8;
+	original_entrypoint_offset |= rom[2] << 16;
+	unsigned long original_entrypoint_address = 0x08000000 + 8 + (original_entrypoint_offset << 2);
+	printf("Original offset was %lx, original entrypoint was %lx\n", original_entrypoint_offset, original_entrypoint_address);
+	// little endian assumed, deal with it
+	((uint32_t*) rom)[(payload_base + 1[(uint32_t*) payload_bin]) >> 2] = original_entrypoint_address;
+
+	unsigned long new_entrypoint_address = 0x08000000 + payload_base + 0[(uint32_t*) payload_bin];
+	0[(uint32_t*) rom] = 0xea000000 | (new_entrypoint_address - 0x08000008) >> 2;
+
+
+	// Patch any write functions to install the countdown IRQ handler when needed
+	{
+		uint8_t *write_location;
+		if (write_location = memfind(rom, romsize, write_sram_signature, sizeof write_sram_signature, 2))
+		{
+			printf("WriteSram identified at offset %lx, patching\n", write_location - rom);
+			memcpy(write_location, thumb_branch_thunk, sizeof thumb_branch_thunk);
+			1[(uint32_t*) write_location] = 0x08000000 + payload_base + 2[(uint32_t*) payload_bin];
+		}
+		else if (write_location = memfind(rom, romsize, write_eeprom_signature, sizeof write_eeprom_signature, 2))
+		{
+			printf("SRAM-patched ProgramEepromDword identified at offset %lx, patching\n", write_location - rom);
+			memcpy(write_location, thumb_branch_thunk, sizeof thumb_branch_thunk);
+			1[(uint32_t*) write_location] = 0x08000000 + payload_base + 3[(uint32_t*) payload_bin];
+		}
+		else if (write_location = memfind(rom, romsize, write_flash_signature, sizeof write_flash_signature, 2))
+		{
+			printf("SRAM-patched flash write function identified at offset %lx\n", write_location - rom);
+			memcpy(write_location, thumb_branch_thunk, sizeof thumb_branch_thunk);
+			1[(uint32_t*) write_location] = 0x08000000 + payload_base + 4[(uint32_t*) payload_bin];
+		}
+		else if (write_location = memfind(rom, romsize, write_flash2_signature, sizeof write_flash2_signature, 2))
+		{
+			printf("SRAM-patched flash write function identified at offset %lx\n", write_location - rom);
+			memcpy(write_location, thumb_branch_thunk, sizeof thumb_branch_thunk);
+			1[(uint32_t*) write_location] = 0x08000000 + payload_base + 4[(uint32_t*) payload_bin];
+		}
+		else 
+		{
+			puts("Could not find a write function to hook. Are you sure the game has save functionality and has been SRAM patched with GBATA?");
+			return 1;
+		}
+	}
+
+
+	// Flush all changes to file
+	fseek(romfile, 0, SEEK_SET);
+	fwrite(rom, 1, romsize, romfile);
+
+	return 0;
+	
 }
