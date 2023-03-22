@@ -122,7 +122,7 @@ int main(int argc, char **argv)
 		{
 			puts("Expanding ROM");
 			romsize += 0x40000;
-			payload_base = romsize - 0x20000;
+			payload_base = romsize - 0x20000 - payload_bin_len;
 		}
 	}
 	
