@@ -56,7 +56,7 @@ int main(int argc, char **argv)
         return 1;
     }
 
-    if (romsize & 0xffff)
+    if (romsize & 0x1ffff)
     {
         puts("ROM not sufficiently aligned - don't trim it");
     }
