@@ -58,11 +58,11 @@ int main(int argc, char **argv)
         return 1;
     }
 
-    if (romsize & 0x1ffff)
+    if (romsize & 0x3ffff)
     {
-		puts("ROM has been trimmed and is misaligned. Padding to 128KB alignment");
-		romsize &= ~0x1ffff;
-		romsize += 0x20000;
+		puts("ROM has been trimmed and is misaligned. Padding to 256KB alignment");
+		romsize &= ~0x3ffff;
+		romsize += 0x40000;
     }
 
     fseek(romfile, 0, SEEK_SET);
@@ -90,7 +90,8 @@ int main(int argc, char **argv)
 
     // Find a location to insert the payload immediately before a 0x20000 byte sector
 	int payload_base;
-    for (payload_base = romsize - 0x20000 - payload_bin_len; payload_base >= 0; payload_base -= 0x20000)
+	// reserve the last 128KB of ROM because some flash chips seem to have different sector topology there
+    for (payload_base = romsize - 0x40000 - payload_bin_len; payload_base >= 0; payload_base -= 0x20000)
     {
         int is_all_zeroes = 1;
         int is_all_ones = 1;
