@@ -31,10 +31,6 @@ original_entrypoint_addr:
 .thumb
 # r0 = sector number, # r1 = source data 0x1000 bytes
 write_flash_patched:
-    lsr r2, r0, # 4
-	mov r3, # 0x09
-	lsl r3, # 24
-	strh r2, [r3]
 	
     lsl r0, # 12
 	mov r2, # 0x0e
