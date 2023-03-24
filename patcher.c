@@ -17,6 +17,8 @@ static unsigned char write_sram_signature[] = { 0x30, 0xB5, 0x05, 0x1C, 0x0C, 0x
 static unsigned char write_eeprom_signature[] = { 0x70, 0xB5, 0x00, 0x04, 0x0A, 0x1C, 0x40, 0x0B, 0xE0, 0x21, 0x09, 0x05, 0x41, 0x18, 0x07, 0x31, 0x00, 0x23, 0x10, 0x78};
 static unsigned char write_flash_signature[] = { 0x70, 0xB5, 0x00, 0x03, 0x0A, 0x1C, 0xE0, 0x21, 0x09, 0x05, 0x41, 0x18, 0x01, 0x23, 0x1B, 0x03};
 static unsigned char write_flash2_signature[] = { 0x7C, 0xB5, 0x90, 0xB0, 0x00, 0x03, 0x0A, 0x1C, 0xE0, 0x21, 0x09, 0x05, 0x09, 0x18, 0x01, 0x23};
+// sig present without SRAM patch
+static unsigned char write_flash3_signature[] = { 0xF0, 0xB5, 0x90, 0xB0, 0x0F, 0x1C, 0x00, 0x04, 0x04, 0x0C, 0x03, 0x48, 0x00, 0x68, 0x40, 0x89 };
 
 static uint8_t *memfind(uint8_t *haystack, size_t haystack_size, uint8_t *needle, size_t needle_size, int stride)
 {
@@ -156,32 +158,44 @@ int main(int argc, char **argv)
 
 	// Patch any write functions to install the countdown IRQ handler when needed
 	{
-		uint8_t *write_location;
+		uint8_t *write_location = NULL;
+		int found_write_location = 0;
 		if (write_location = memfind(rom, romsize, write_sram_signature, sizeof write_sram_signature, 2))
 		{
+			found_write_location = 1;
 			printf("WriteSram identified at offset %lx, patching\n", write_location - rom);
 			memcpy(write_location, thumb_branch_thunk, sizeof thumb_branch_thunk);
 			1[(uint32_t*) write_location] = 0x08000000 + payload_base + 2[(uint32_t*) payload_bin];
 		}
-		else if (write_location = memfind(rom, romsize, write_eeprom_signature, sizeof write_eeprom_signature, 2))
+		if (write_location = memfind(rom, romsize, write_eeprom_signature, sizeof write_eeprom_signature, 2))
 		{
+			found_write_location = 1;
 			printf("SRAM-patched ProgramEepromDword identified at offset %lx, patching\n", write_location - rom);
 			memcpy(write_location, thumb_branch_thunk, sizeof thumb_branch_thunk);
 			1[(uint32_t*) write_location] = 0x08000000 + payload_base + 3[(uint32_t*) payload_bin];
 		}
-		else if (write_location = memfind(rom, romsize, write_flash_signature, sizeof write_flash_signature, 2))
+		if (write_location = memfind(rom, romsize, write_flash_signature, sizeof write_flash_signature, 2))
 		{
-			printf("SRAM-patched flash write function identified at offset %lx\n", write_location - rom);
+			found_write_location = 1;
+			printf("SRAM-patched flash write function 1 identified at offset %lx\n", write_location - rom);
 			memcpy(write_location, thumb_branch_thunk, sizeof thumb_branch_thunk);
 			1[(uint32_t*) write_location] = 0x08000000 + payload_base + 4[(uint32_t*) payload_bin];
 		}
-		else if (write_location = memfind(rom, romsize, write_flash2_signature, sizeof write_flash2_signature, 2))
+		if (write_location = memfind(rom, romsize, write_flash2_signature, sizeof write_flash2_signature, 2))
 		{
-			printf("SRAM-patched flash write function identified at offset %lx\n", write_location - rom);
+			found_write_location = 1;
+			printf("SRAM-patched flash write function2  identified at offset %lx\n", write_location - rom);
 			memcpy(write_location, thumb_branch_thunk, sizeof thumb_branch_thunk);
 			1[(uint32_t*) write_location] = 0x08000000 + payload_base + 4[(uint32_t*) payload_bin];
 		}
-		else 
+		if (write_location = memfind(rom, romsize, write_flash3_signature, sizeof write_flash3_signature, 2))
+		{
+			found_write_location = 1;
+			printf("SRAM-patched flash write function 3 identified at offset %lx\n", write_location - rom);
+			memcpy(write_location, thumb_branch_thunk, sizeof thumb_branch_thunk);
+			1[(uint32_t*) write_location] = 0x08000000 + payload_base + 4[(uint32_t*) payload_bin];
+		}
+		if (!found_write_location)
 		{
 			puts("Could not find a write function to hook. Are you sure the game has save functionality and has been SRAM patched with GBATA?");
 			getchar();
