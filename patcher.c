@@ -118,7 +118,7 @@ int main(int argc, char **argv)
 	if (payload_base < 0)
 	{
 		puts("ROM too small to install payload.");
-		if (romsize + 0x40000 > 0x2000000)
+		if (romsize + 0x60000 > 0x2000000)
 		{
 			puts("ROM alraedy max size. Cannot expand. Cannot install payload");
 			getchar();
@@ -127,8 +127,8 @@ int main(int argc, char **argv)
 		else
 		{
 			puts("Expanding ROM");
-			romsize += 0x40000;
-			payload_base = romsize - 0x20000 - payload_bin_len;
+			romsize += 0x60000;
+			payload_base = romsize - 0x40000 - payload_bin_len;
 		}
 	}
 	
