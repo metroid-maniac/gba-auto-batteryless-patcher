@@ -5,8 +5,8 @@
     .word patched_entrypoint
     .word original_entrypoint_addr
     .word write_sram_patched + 1
-	.word write_eeprom_patched + 1
-	.word write_flash_patched + 1
+    .word write_eeprom_patched + 1
+    .word write_flash_patched + 1
 
 patched_entrypoint:
     mov r0, # 0x04000000
@@ -15,8 +15,11 @@ patched_entrypoint:
 
     adrl r0, flash_save_sector
     mov r1, # 0x0e000000
-    add r2, r1, # 0x00010000
+    add r2, r1, # 0x00020000
+    mov r3, # 0x09000000
 sram_init_loop:
+    lsr r4, r1, # 16
+    strb r4, [r3]
     ldrb r3, [r0], # 1
     strb r3, [r1], # 1
     cmp r1, r2
@@ -31,24 +34,31 @@ original_entrypoint_addr:
 .thumb
 # r0 = sector number, # r1 = source data 0x1000 bytes
 write_flash_patched:
-	
+    
     lsl r0, # 12
-	mov r2, # 0x0e
-	lsl r2, # 24
-	orr r0, r2
-	mov r2, # 0x1
-	lsl r2, # 12
-	mov r3, r0
-	mov r0, r1
-	mov r1, r3
-	
-	b write_sram_patched
+    mov r2, # 0x0e
+    lsl r2, # 24
+    orr r0, r2
+    mov r2, # 0x1
+    lsl r2, # 12
+    mov r3, r0
+    mov r0, r1
+    mov r1, r3
+    
+    b write_sram_patched
 
 
 # r0 = src, r1 = dst, r2 = size. Check if change before writing, only install irq if change
 # unoptimised as hell, but I don't care for now.
 write_sram_patched:
     push {r4, r5}
+    
+    # It is known that a write function call will not span both SRAM banks, so only switch banks once per call.
+    mov r4, # 0x09
+    lsl r4, # 24
+    lsr r3, r1, # 16
+    strb r3, [r4]
+    
     mov r3, # 0
     add r2, r0
 write_sram_patched_loop:
@@ -87,29 +97,29 @@ write_sram_patched_exit:
 # r0 = eeprom address, r1 = src data (needs byte swapping, 8 bytes)
 write_eeprom_patched:
     push {r4, lr}
-	mov r2, r1
-	add r2, # 8
-	mov r3, sp
+    mov r2, r1
+    add r2, # 8
+    mov r3, sp
 write_eeprom_patched_byte_swap_loop:
     ldrb r4, [r1]
-	add r1, # 1
-	sub r3, # 1
-	strb r4, [r3]
-	cmp r1, r2
-	bne write_eeprom_patched_byte_swap_loop
-	
-	mov r1, # 0x0e
-	lsl r1, # 24
-	lsl r0, # 3
-	add r1, r0
-	mov r2, # 8
-	mov r0, r3
-	mov sp, r3
-	bl write_sram_patched
-	
-	add sp, # 8
-	pop {r4, pc}
-	
+    add r1, # 1
+    sub r3, # 1
+    strb r4, [r3]
+    cmp r1, r2
+    bne write_eeprom_patched_byte_swap_loop
+    
+    mov r1, # 0x0e
+    lsl r1, # 24
+    lsl r0, # 3
+    add r1, r0
+    mov r2, # 8
+    mov r0, r3
+    mov sp, r3
+    bl write_sram_patched
+    
+    add sp, # 8
+    pop {r4, pc}
+    
 
 .arm
 # IRQ handlers are called with 0x04000000 in r0 which is handy!
@@ -211,7 +221,7 @@ run_from_ram_loop:
     bx lr
 
 try_22xx:
-    push {r4, r5, r6, r7}
+    push {r4, r5, r6, r7, r8, r9}
     mov r1, # 0x08000000
     add r2, r1, # 0x00000aa
     add r2, # 0x00000a00
@@ -231,9 +241,12 @@ try_22xx:
     mov r4, # 0xf0
     strh r4, [r1]
     
-    popne {r4, r5, r6, r7}
+    popne {r4, r5, r6, r7, r8, r9}
     bxne lr
     
+    mov r8, # 0x09000000
+    
+    # sector size assumed 0x20000
     mov r4, # 0x00a9
     strh r4, [r2]
     mov r4, # 0x0056
@@ -259,8 +272,11 @@ try_22xx:
     strh r4, [r1]
  
     mov r5, # 0x0e000000
-    add r6, r5, # 0x00010000
+    add r6, r5, # 0x00020000
 try_22xx_write_all_loop:
+    lsr r9, r5, # 16
+    strb r9, [r8]
+
     ldrb r7, [r5], # 1
     ldrb r4, [r5], # 1
     orr r7, r4, LSL # 8
@@ -288,7 +304,7 @@ try_22xx_write_all_loop:
     mov r4, # 0x00f0
     strh r4, [r1]
     
-    pop {r4, r5, r6, r7}
+    pop {r4, r5, r6, r7, r8, r9}
     bx lr
 try_22xx_end:
 
@@ -306,6 +322,7 @@ try_intel:
     strh r2, [r1]
     bxne lr
     
+    # Sector size assumed 0x10000, erase two.
     mov r2, # 0x00ff
     strh r2, [r0]
     mov r2, # 0x0060
@@ -328,7 +345,7 @@ try_intel:
     push {r4, r5}
     mov r4, # 0x0e000000
     add r5, r4, # 0x00010000
-try_intel_write_all_loop:
+try_intel_write_all_loop_1:
     ldrb r3, [r4], # 1
     ldrb r2, [r4], # 1
     orr r3, r2, LSL # 8
@@ -345,7 +362,7 @@ try_intel_write_all_loop:
     mov r2, # 0x00ff
     strh r2, [r0], # 2
     cmp r4, r5
-    blo try_intel_write_all_loop
+    blo try_intel_write_all_loop_1
     
     pop {r4, r5}
     
