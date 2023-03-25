@@ -131,8 +131,9 @@ countdown_irq_handler:
     msr cpsr, r3
 
     # save sound state then disable it
+    ldrh r2, [r0, # 0x0080]
     ldrh r3, [r0, # 0x0084]
-    push {r3}
+    push {r2, r3}
     strh r0, [r0, # 0x0084]
 
     # save DMAs state then disable them
@@ -178,8 +179,9 @@ flush_sram_done:
 
 
     # restore sound state
-    pop {r3}
+    pop {r2, r3}
     strh r3, [r0, # 0x0084]
+    strh r2, [r0, # 0x0080]
 
     # restore previous irq mode
     mov r3, # 0x92
