@@ -226,6 +226,7 @@ int main(int argc, char **argv)
 	// Flush all changes to file
 	fseek(romfile, 0, SEEK_SET);
 	fwrite(rom, 1, romsize, romfile);
+    fflush(romfile);
 
     puts("Patched successfully. Changes written to file.");
     getchar();
