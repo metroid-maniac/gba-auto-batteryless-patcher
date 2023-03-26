@@ -2,8 +2,10 @@
 .balign 4
 
 # the following values are exposed for the benefit of the patcher program.
+# The named constants are expected to be changed by the patcher.
+original_entrypoint_addr:
+    .word 0x080000c0
     .word patched_entrypoint
-    .word original_entrypoint_addr
     .word write_sram_patched + 1
 	.word write_eeprom_patched + 1
 	.word write_flash_patched + 1
@@ -24,9 +26,6 @@ sram_init_loop:
 
     ldr pc, original_entrypoint_addr
 
-original_entrypoint_addr:
-# a good guess but can be changed by patcher
-    .word 0x080000c0
 
 .thumb
 # r0 = sector number, # r1 = source data 0x1000 bytes

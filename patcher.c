@@ -12,8 +12,8 @@ uint8_t rom[0x02000000];
 char signature[] = "<3 from Maniac";
 
 enum payload_offsets {
-    PATCHED_ENTRYPOINT,
     ORIGINAL_ENTRYPOINT_ADDR,
+    PATCHED_ENTRYPOINT,
     WRITE_SRAM_PATCHED,
     WRITE_EEPROM_PATCHED,
     WRITE_FLASH_PATCHED,
@@ -161,7 +161,8 @@ int main(int argc, char **argv)
 	unsigned long original_entrypoint_address = 0x08000000 + 8 + (original_entrypoint_offset << 2);
 	printf("Original offset was %lx, original entrypoint was %lx\n", original_entrypoint_offset, original_entrypoint_address);
 	// little endian assumed, deal with it
-	((uint32_t*) rom)[(payload_base + ORIGINAL_ENTRYPOINT_ADDR[(uint32_t*) payload_bin]) >> 2] = original_entrypoint_address;
+    
+	ORIGINAL_ENTRYPOINT_ADDR[(uint32_t*) &rom[payload_base]] = original_entrypoint_address;
 
 	unsigned long new_entrypoint_address = 0x08000000 + payload_base + PATCHED_ENTRYPOINT[(uint32_t*) payload_bin];
 	0[(uint32_t*) rom] = 0xea000000 | (new_entrypoint_address - 0x08000008) >> 2;
