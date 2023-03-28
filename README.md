@@ -2,9 +2,11 @@
 
 This program patches a GBA game for batteryless saving (i.e. saving on a bootleg cartridge containing SRAM but no battery).
 
-The game must be SRAM patched before using this program. The patch will trigger a countdown lasting a few seconds whenever the game writes to SRAM. When the countdown expires, the patch tries to copy the save data to ROM. While the countdown is taking place, the graphics are purposefully corrupted.
+The game must be SRAM patched before using this program. The patch contains two modes, which can be selected during patching.
 
-Some games write to SRAM more frequently than you think. To save time, you may play the game in an emulator and observe when saving takes place to determine if it will be too often. Be sure to set the emulator to an SRAM save type if you do this.
+In auto mode, the save will automatically be flushed a few seconds after saving. Until the save completes, the graphics will be purposefully corrupted.
+
+In keypad trigger mode, the save can only be flushed by pressing L+R+Start+Select after a save has taken place.
 
 ## Usage
 Run with ROM as the only argument, the ROM will be modified 
