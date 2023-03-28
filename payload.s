@@ -47,8 +47,13 @@ write_flash_patched:
 # r0 = src, r1 = dst, r2 = size. Check if change before writing, only install irq if change
 # unoptimised as hell, but I don't care for now.
 write_sram_patched:
-    push {r4, r5}
+    push {r4, r5, r6, r7}
+
+    # Disable interrupts while writing - just in case
+    ldr r6, =0x04000208
+    ldrh r7, [r6]
     mov r3, # 0
+    strh r3, [r6]
     add r2, r0
 write_sram_patched_loop:
     # Check if the each byte to write to sram is different - if it is, write it then set a flag
@@ -79,9 +84,12 @@ write_sram_patched_loop:
     strh r2, [r1, # 0x12]
 
 write_sram_patched_exit:
+    strh r7, [r6]
     mov r0, # 0
-    pop {r4, r5}
+    pop {r4, r5, r6, r7}
     bx lr
+
+    .ltorg
 
 # r0 = eeprom address, r1 = src data (needs byte swapping, 8 bytes)
 write_eeprom_patched:
