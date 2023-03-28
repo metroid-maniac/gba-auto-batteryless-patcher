@@ -5,6 +5,8 @@
 # The named constants are expected to be changed by the patcher.
 original_entrypoint_addr:
     .word 0x080000c0
+flush_mode:
+    .word 0
     .word patched_entrypoint
     .word write_sram_patched + 1
 	.word write_eeprom_patched + 1
@@ -72,16 +74,28 @@ write_sram_patched_loop:
     cmp r3, # 0
     beq write_sram_patched_exit
 
-    # Install countdown irq handler and initialise countdown value
-    adr r0, countdown_irq_handler
+    # Install the chosen irq handler and initialise countdown value if needed.
     mov r1, # 0x04
     lsl r1, # 24
     sub r1, # 0x10
+    mov r0, pc
+    sub r0, # . + 2 - flush_mode
+    ldrh r0, [r0]
+    cmp r0, # 0
+    bne install_keypad_irq_handler
+    
+    adr r0, countdown_irq_handler
     mov r2, # 101
     strh r2, [r1, # 0x0a]
     str r0, [r1, # 0x0c]
     # Set green swap as a visual indicator that the countdown has begun
     strh r2, [r1, # 0x12]
+    
+    b write_sram_patched_exit
+    
+install_keypad_irq_handler:
+    adr r0, keypad_irq_handler
+    strh r0, [r1, # 0x0c]
 
 write_sram_patched_exit:
     strh r7, [r6]
@@ -120,6 +134,13 @@ write_eeprom_patched_byte_swap_loop:
 
 .arm
 # IRQ handlers are called with 0x04000000 in r0 which is handy!
+keypad_irq_handler:
+    # May need to be changed to ldrh
+    ldr r3, [r0, # 0x130]
+    teq r3, # 0xf3
+    ldrne pc, [r0, # - 12]
+    b flush_during_irq
+
 countdown_irq_handler:
     # if not vblank IF then user handler
     ldr r1, [r0, # 0x200]
@@ -132,6 +153,7 @@ countdown_irq_handler:
     strh r1, [r0, # - 6]
     ldrne pc, [r0, # -12]
 
+flush_during_irq:
     # countdown expired.
     # first switch back into user mode to regain significant stack space
     mov r3, # 0x9f

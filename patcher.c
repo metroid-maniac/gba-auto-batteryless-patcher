@@ -13,6 +13,7 @@ char signature[] = "<3 from Maniac";
 
 enum payload_offsets {
     ORIGINAL_ENTRYPOINT_ADDR,
+    FLUSH_MODE,
     PATCHED_ENTRYPOINT,
     WRITE_SRAM_PATCHED,
     WRITE_EEPROM_PATCHED,
@@ -147,6 +148,13 @@ int main(int argc, char **argv)
 	
 	printf("Installing payload at offset %x, save file stored at %x\n", payload_base, payload_base + payload_bin_len);
 	memcpy(rom + payload_base, payload_bin, payload_bin_len);
+    
+    
+    puts("Enter 0 for auto mode and 1 for keypad triggered mode");
+    int mode = 0;
+    scanf("%d", &mode);
+    FLUSH_MODE[(uint32_t*) &rom[payload_base]] = mode;
+    
 
 	// Patch the ROM entrypoint to init sram and the dummy IRQ handler, and tell the new entrypoint where the old one was.
 	if (rom[3] != 0xea)
