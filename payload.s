@@ -259,7 +259,7 @@ run_from_ram_loop:
     bx lr
 
 try_22xx:
-    push {r4, r5, r6, r7, r8}
+    push {r4, r5, r6, r7, r8, r9}
     mov r8, r1
     mov r1, # 0x08000000
     add r2, r1, # 0x00000aa
@@ -280,7 +280,7 @@ try_22xx:
     mov r4, # 0xf0
     strh r4, [r1]
     
-    popne {r4, r5, r6, r7, r8}
+    popne {r4, r5, r6, r7, r8, r9}
     bxne lr
     
     mov r4, # 0x00a9
@@ -309,7 +309,11 @@ try_22xx:
  
     mov r5, # 0x0e000000
     add r6, r5, r8
+    mov r9, # 0x09000000
 try_22xx_write_all_loop:
+    lsr r7, r5, # 16
+    and r7, # 1
+    strh r7, [r9]
     ldrb r7, [r5], # 1
     ldrb r4, [r5], # 1
     orr r7, r4, LSL # 8
@@ -337,7 +341,7 @@ try_22xx_write_all_loop:
     mov r4, # 0x00f0
     strh r4, [r1]
     
-    pop {r4, r5, r6, r7, r8}
+    pop {r4, r5, r6, r7, r8, r9}
     bx lr
 try_22xx_end:
 
