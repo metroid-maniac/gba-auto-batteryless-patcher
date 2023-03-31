@@ -7,6 +7,8 @@ original_entrypoint_addr:
     .word 0x080000c0
 flush_mode:
     .word 0
+save_size:
+    .word 0x10000
     .word patched_entrypoint
     .word write_sram_patched + 1
 	.word write_eeprom_patched + 1
@@ -19,7 +21,8 @@ patched_entrypoint:
 
     adrl r0, flash_save_sector
     mov r1, # 0x0e000000
-    add r2, r1, # 0x00010000
+    ldr r2, save_size
+    add r2, r1
 sram_init_loop:
     ldrb r3, [r0], # 1
     strb r3, [r1], # 1
@@ -32,7 +35,6 @@ sram_init_loop:
 .thumb
 # r0 = sector number, # r1 = source data 0x1000 bytes
 write_flash_patched:
-	
     lsl r0, # 12
 	mov r2, # 0x0e
 	lsl r2, # 24
@@ -183,13 +185,15 @@ flush_during_irq:
     
     # Try flushing for various flash chips
     adr r0, flash_save_sector
-    adr r1, try_22xx
-    adr r2, try_22xx_end
+    ldr r1, save_size
+    adr r2, try_22xx
+    adr r3, try_22xx_end
     bl run_from_ram
     
     adr r0, flash_save_sector
-    adr r1, try_intel
-    adr r2, try_intel_end
+    ldr r1, save_size
+    adr r2, try_intel
+    adr r3, try_intel_end
     bl run_from_ram
 
 flush_sram_done:
@@ -225,24 +229,25 @@ idle_irq_handler:
     ldr pc, [r0, # -12]
 
 run_from_ram:
-    push {r4, lr}
+    push {r4, r5, lr}
     mov r4, sp
     
 run_from_ram_loop:    
-    ldr r3, [r2, # -4]!
-    push {r3}
-    cmp r1, r2
+    ldr r5, [r3, # -4]!
+    push {r5}
+    cmp r2, r3
     bne run_from_ram_loop
     
     mov lr, pc
     bx sp
     
     mov sp, r4
-    pop {r4, lr}
+    pop {r4, r5, lr}
     bx lr
 
 try_22xx:
-    push {r4, r5, r6, r7}
+    push {r4, r5, r6, r7, r8}
+    mov r8, r1
     mov r1, # 0x08000000
     add r2, r1, # 0x00000aa
     add r2, # 0x00000a00
@@ -262,7 +267,7 @@ try_22xx:
     mov r4, # 0xf0
     strh r4, [r1]
     
-    popne {r4, r5, r6, r7}
+    popne {r4, r5, r6, r7, r8}
     bxne lr
     
     mov r4, # 0x00a9
@@ -290,7 +295,7 @@ try_22xx:
     strh r4, [r1]
  
     mov r5, # 0x0e000000
-    add r6, r5, # 0x00010000
+    add r6, r5, r8
 try_22xx_write_all_loop:
     ldrb r7, [r5], # 1
     ldrb r4, [r5], # 1
@@ -319,11 +324,12 @@ try_22xx_write_all_loop:
     mov r4, # 0x00f0
     strh r4, [r1]
     
-    pop {r4, r5, r6, r7}
+    pop {r4, r5, r6, r7, r8}
     bx lr
 try_22xx_end:
 
 try_intel:
+    mov r3, r1
     mov r1, # 0x08000000
     mov r2, # 0x00FF
     strh r2, [r1]
@@ -358,7 +364,7 @@ try_intel:
     
     push {r4, r5}
     mov r4, # 0x0e000000
-    add r5, r4, # 0x00010000
+    add r5, r4, r3
 try_intel_write_all_loop:
     ldrb r3, [r4], # 1
     ldrb r2, [r4], # 1

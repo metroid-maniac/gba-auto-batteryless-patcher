@@ -14,6 +14,7 @@ char signature[] = "<3 from Maniac";
 enum payload_offsets {
     ORIGINAL_ENTRYPOINT_ADDR,
     FLUSH_MODE,
+    SAVE_SIZE,
     PATCHED_ENTRYPOINT,
     WRITE_SRAM_PATCHED,
     WRITE_EEPROM_PATCHED,
@@ -186,6 +187,8 @@ int main(int argc, char **argv)
 			printf("WriteSram identified at offset %lx, patching\n", write_location - rom);
 			memcpy(write_location, thumb_branch_thunk, sizeof thumb_branch_thunk);
 			1[(uint32_t*) write_location] = 0x08000000 + payload_base + WRITE_SRAM_PATCHED[(uint32_t*) payload_bin];
+            SAVE_SIZE[(uint32_t*) &rom[payload_base]] = 0x8000;
+
 		}
         
 		if (write_location = memfind(rom, romsize, write_sram_ram_signature, sizeof write_sram_ram_signature, 2))
@@ -194,6 +197,7 @@ int main(int argc, char **argv)
 			printf("WriteSramFast identified at offset %lx, patching\n", write_location - rom);
 			memcpy(write_location, arm_branch_thunk, sizeof arm_branch_thunk);
 			2[(uint32_t*) write_location] = 0x08000000 + payload_base + WRITE_SRAM_PATCHED[(uint32_t*) payload_bin];
+            SAVE_SIZE[(uint32_t*) &rom[payload_base]] = 0x8000;
 		}
 		if (write_location = memfind(rom, romsize, write_eeprom_signature, sizeof write_eeprom_signature, 2))
 		{
@@ -201,6 +205,8 @@ int main(int argc, char **argv)
 			printf("SRAM-patched ProgramEepromDword identified at offset %lx, patching\n", write_location - rom);
 			memcpy(write_location, thumb_branch_thunk, sizeof thumb_branch_thunk);
 			1[(uint32_t*) write_location] = 0x08000000 + payload_base + WRITE_EEPROM_PATCHED[(uint32_t*) payload_bin];
+            // Unable to statically distinguish between EEPROM sizes - assume 64kbit to be safe.
+            SAVE_SIZE[(uint32_t*) &rom[payload_base]] = 0x2000;
 		}
 		if (write_location = memfind(rom, romsize, write_flash_signature, sizeof write_flash_signature, 2))
 		{
@@ -208,6 +214,7 @@ int main(int argc, char **argv)
 			printf("SRAM-patched flash write function 1 identified at offset %lx\n", write_location - rom);
 			memcpy(write_location, thumb_branch_thunk, sizeof thumb_branch_thunk);
 			1[(uint32_t*) write_location] = 0x08000000 + payload_base + WRITE_FLASH_PATCHED[(uint32_t*) payload_bin];
+            SAVE_SIZE[(uint32_t*) &rom[payload_base]] = 0x10000;
 		}
 		if (write_location = memfind(rom, romsize, write_flash2_signature, sizeof write_flash2_signature, 2))
 		{
@@ -215,6 +222,7 @@ int main(int argc, char **argv)
 			printf("SRAM-patched flash write function2  identified at offset %lx\n", write_location - rom);
 			memcpy(write_location, thumb_branch_thunk, sizeof thumb_branch_thunk);
 			1[(uint32_t*) write_location] = 0x08000000 + payload_base + WRITE_FLASH_PATCHED[(uint32_t*) payload_bin];
+            SAVE_SIZE[(uint32_t*) &rom[payload_base]] = 0x10000;
 		}
 		if (write_location = memfind(rom, romsize, write_flash3_signature, sizeof write_flash3_signature, 2))
 		{
@@ -222,6 +230,7 @@ int main(int argc, char **argv)
 			printf("SRAM-patched flash write function 3 identified at offset %lx\n", write_location - rom);
 			memcpy(write_location, thumb_branch_thunk, sizeof thumb_branch_thunk);
 			1[(uint32_t*) write_location] = 0x08000000 + payload_base + WRITE_FLASH_PATCHED[(uint32_t*) payload_bin];
+            SAVE_SIZE[(uint32_t*) &rom[payload_base]] = 0x10000;
 		}
 		if (!found_write_location)
 		{
