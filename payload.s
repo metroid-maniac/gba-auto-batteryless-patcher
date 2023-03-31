@@ -8,7 +8,7 @@ original_entrypoint_addr:
 flush_mode:
     .word 0
 save_size:
-    .word 0x10000
+    .word 0x20000
     .word patched_entrypoint
     .word write_sram_patched + 1
 	.word write_eeprom_patched + 1
@@ -23,9 +23,14 @@ patched_entrypoint:
     mov r1, # 0x0e000000
     ldr r2, save_size
     add r2, r1
+    mov r3, # 0x09000000
 sram_init_loop:
-    ldrb r3, [r0], # 1
-    strb r3, [r1], # 1
+    lsr r4, r1, # 16
+    and r4, # 1
+    strh r4, [r3]
+    nop
+    ldrb r4, [r0], # 1
+    strb r4, [r1], # 1
     cmp r1, r2
     blo sram_init_loop
 
@@ -52,6 +57,14 @@ write_flash_patched:
 # unoptimised as hell, but I don't care for now.
 write_sram_patched:
     push {r4, r5, r6, r7}
+
+    # Writes will never span both SRAM banks, so only needed to write once.
+    mov r4, # 0x09
+    lsl r4, # 24
+    lsr r5, r1, # 16
+    mov r6, # 1
+    and r5, r6
+    strh r5, [r4]
 
     # Disable interrupts while writing - just in case
     ldr r6, =0x04000208
@@ -362,10 +375,14 @@ try_intel:
     mov r2, # 0x00ff
     strh r2, [r0]
     
-    push {r4, r5}
+    push {r4, r5, r6}
     mov r4, # 0x0e000000
     add r5, r4, r3
+    mov r6, # 0x09000000
 try_intel_write_all_loop:
+    lsr r3, r4, # 16
+    and r3, # 1
+    strh r3, [r6]
     ldrb r3, [r4], # 1
     ldrb r2, [r4], # 1
     orr r3, r2, LSL # 8
@@ -384,7 +401,7 @@ try_intel_write_all_loop:
     cmp r4, r5
     blo try_intel_write_all_loop
     
-    pop {r4, r5}
+    pop {r4, r5, r6}
     
     bx lr
 try_intel_end:

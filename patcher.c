@@ -227,10 +227,11 @@ int main(int argc, char **argv)
 		if (write_location = memfind(rom, romsize, write_flash3_signature, sizeof write_flash3_signature, 2))
 		{
 			found_write_location = 1;
-			printf("SRAM-patched flash write function 3 identified at offset %lx\n", write_location - rom);
+			printf("Flash write function 3 identified at offset %lx\n", write_location - rom);
 			memcpy(write_location, thumb_branch_thunk, sizeof thumb_branch_thunk);
 			1[(uint32_t*) write_location] = 0x08000000 + payload_base + WRITE_FLASH_PATCHED[(uint32_t*) payload_bin];
-            SAVE_SIZE[(uint32_t*) &rom[payload_base]] = 0x10000;
+            // Assumed this signature only appears in FLASH1M
+            SAVE_SIZE[(uint32_t*) &rom[payload_base]] = 0x20000;
 		}
 		if (!found_write_location)
 		{
