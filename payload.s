@@ -373,8 +373,8 @@ try_intel:
     nop
     
     ldrh r2, [r0]
-    cmp r2, # 0x0080
-    bne (.-8)
+    tst r2, # 0x0080
+    beq (.-8)
     
     mov r2, # 0x00ff
     strh r2, [r0]
@@ -397,8 +397,8 @@ try_intel_write_all_loop:
     nop
     
     ldrh r2, [r0]
-    cmp r2, # 0x0080
-    bne (.-8)
+    tst r2, # 0x0080
+    beq (.-8)
     
     mov r2, # 0x00ff
     strh r2, [r0], # 2
