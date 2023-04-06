@@ -58,19 +58,20 @@ write_flash_patched:
 write_sram_patched:
     push {r4, r5, r6, r7}
 
-    # Writes will never span both SRAM banks, so only needed to write once.
-    mov r4, # 0x09
-    lsl r4, # 24
-    lsr r5, r1, # 16
-    mov r6, # 1
-    and r5, r6
-    strh r5, [r4]
-
     # Disable interrupts while writing - just in case
     ldr r6, =0x04000208
     ldrh r7, [r6]
     mov r3, # 0
     strh r3, [r6]
+    
+    # Writes will never span both SRAM banks, so only needed to write once.
+    mov r4, # 0x09
+    lsl r4, # 24
+    lsr r5, r1, # 16
+    mov r3, # 1
+    and r5, r3
+    strh r5, [r4]
+    
     add r2, r0
 write_sram_patched_loop:
     # Check if the each byte to write to sram is different - if it is, write it then set a flag
