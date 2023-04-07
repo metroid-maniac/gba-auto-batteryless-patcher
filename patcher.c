@@ -178,7 +178,8 @@ int main(int argc, char **argv)
 
 
 	// Patch any write functions to install the countdown IRQ handler when needed
-	{
+	if (!mode) 
+    {
 		uint8_t *write_location = NULL;
 		int found_write_location = 0;
 		if (write_location = memfind(rom, romsize, write_sram_signature, sizeof write_sram_signature, 2))

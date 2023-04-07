@@ -16,7 +16,10 @@ save_size:
 
 patched_entrypoint:
     mov r0, # 0x04000000
+    ldr r1, flush_mode
+    cmp r1, # 0
     adr r1, idle_irq_handler
+    adrne r1, keypad_irq_handler
     str r1, [r0, # -4]
 
     adrl r0, flash_save_sector
@@ -35,7 +38,6 @@ sram_init_loop:
     blo sram_init_loop
 
     ldr pc, original_entrypoint_addr
-
 
 .thumb
 # r0 = sector number, # r1 = source data 0x1000 bytes
@@ -98,7 +100,7 @@ write_sram_patched_loop:
     sub r0, # . + 2 - flush_mode
     ldrh r0, [r0]
     cmp r0, # 0
-    bne install_keypad_irq_handler
+    bne write_sram_patched_exit
     
     adr r0, countdown_irq_handler
     mov r2, # 101
@@ -106,12 +108,6 @@ write_sram_patched_loop:
     str r0, [r1, # 0x0c]
     # Set green swap as a visual indicator that the countdown has begun
     strh r2, [r1, # 0x12]
-    
-    b write_sram_patched_exit
-    
-install_keypad_irq_handler:
-    adr r0, keypad_irq_handler
-    strh r0, [r1, # 0x0c]
 
 write_sram_patched_exit:
     strh r7, [r6]
@@ -151,11 +147,38 @@ write_eeprom_patched_byte_swap_loop:
 .arm
 # IRQ handlers are called with 0x04000000 in r0 which is handy!
 keypad_irq_handler:
+    # Check keypad register for L+R+START+SELECT
     # May need to be changed to ldrh
     ldr r3, [r0, # 0x130]
     teq r3, # 0xf3
     ldrne pc, [r0, # - 12]
-    b flush_during_irq
+    
+    # Enable green swap
+    mov r1, # 1
+    strh r1, [r0, # 2]
+    
+    # Switch to system mode to get lots of stack
+    mov r3, # 0x9f
+    msr cpsr, r3
+    
+    push {lr}
+    bl flush_sram
+    pop {lr}
+
+    # return to irq mode
+    mov r3, # 0x92
+    msr cpsr, r3
+    
+    # Disable green swap
+    mov r0, # 0x04000000
+    strh r0, [r0, # 2]
+    
+    # Wait until keypad register is no longer L+R+START+SELECT
+    ldr r3, [r0, # 0x130]
+    teq r3, # 0xf3
+    beq (.-8)
+    
+    ldr pc, [r0, # - 12]
 
 countdown_irq_handler:
     # if not vblank IF then user handler
@@ -169,12 +192,35 @@ countdown_irq_handler:
     strh r1, [r0, # - 6]
     ldrne pc, [r0, # -12]
 
-flush_during_irq:
-    # countdown expired.
-    # first switch back into user mode to regain significant stack space
+    # Switch to system mode to get lots of stack
     mov r3, # 0x9f
     msr cpsr, r3
+    
+    push {lr}
+    bl flush_sram
+    pop {lr}
+    
+    # return to irq mode
+    mov r3, # 0x92
+    msr cpsr, r3
 
+    # Disable green swap
+    mov r0, # 0x04000000
+    strh r0, [r0, # 0x02]
+    
+    # Uninstall countdown irq handler 
+    adr r1, idle_irq_handler
+    str r1, [r0, # - 4]
+    
+    # Continue IRQ handler
+    b idle_irq_handler
+    
+idle_irq_handler:
+    ldr pc, [r0, # -12]
+
+
+# Ensure interrupts are disabled and there is plenty of stack space before calling
+flush_sram:
     # save sound state then disable it
     ldrh r2, [r0, # 0x0080]
     ldrh r3, [r0, # 0x0084]
@@ -230,17 +276,7 @@ flush_sram_done:
     strh r3, [r0, # 0x0084]
     strh r2, [r0, # 0x0080]
 
-    # restore previous irq mode
-    mov r3, # 0x92
-    msr cpsr, r3
-
-    # Disable green swap
-    strh r0, [r0, # 0x02]
-    adr r1, idle_irq_handler
-    str r1, [r0, # - 4]
-
-idle_irq_handler:
-    ldr pc, [r0, # -12]
+    bx lr
 
 run_from_ram:
     push {r4, r5, lr}
