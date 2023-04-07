@@ -1,4 +1,3 @@
-.arm
 .balign 4
 
 # the following values are exposed for the benefit of the patcher program.
@@ -14,6 +13,44 @@ save_size:
 	.word write_eeprom_patched + 1
 	.word write_flash_patched + 1
 
+.thumb
+# If you are writing a manual batteryless save patch, you can branch here
+# Return via LR, only LR is trashed
+flush_sram_manual_entry:
+    push {r0, r1, r2, r3, r4}
+    push {lr}
+
+    ldr r4, =0x04000208
+    ldrh r0, [r4]
+    push {r0}
+    mov r0, # 0
+    strh r0, [r4]
+
+    adr r0, flush_sram
+    mov lr, pc
+    bx r0
+
+    pop {r0}
+    strh r0, [r4]
+
+    pop {r0}
+    mov lr, r0
+    pop {r0, r1, r2, r3, r4}
+# feel free to put any housekeeping before you return to your injected branch here
+    nop
+    nop
+    nop
+    nop
+
+    bx lr
+
+    nop
+    nop
+    nop
+    nop
+.ltorg
+
+.arm
 patched_entrypoint:
     mov r0, # 0x04000000
     ldr r1, flush_mode
