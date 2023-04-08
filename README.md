@@ -6,7 +6,7 @@ The game must be SRAM patched before using this program. GBATA or [Flash1M_Repro
 
 In auto mode, the save will automatically be flushed a few seconds after saving. Until the save completes, the graphics will be purposefully corrupted.
 
-In keypad trigger mode, the save can only be flushed by pressing L+R+Start+Select after a save has taken place.
+In keypad trigger mode, the save can be flushed by pressing L+R+Start+Select at any time. This mode requires less patching, so may be compatible with more games.
 
 ## Usage
 Run with ROM as the only argument, the ROM will be modified 
