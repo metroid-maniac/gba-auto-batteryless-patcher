@@ -7,6 +7,7 @@
 #include "payload.h"
 
 FILE *romfile;
+FILE *outfile;
 uint32_t romsize;
 uint8_t rom[0x02000000];
 char signature[] = "<3 from Maniac";
@@ -57,9 +58,9 @@ int main(int argc, char **argv)
 	memset(rom, 0x00ff, sizeof rom);
 
     // Open ROM file
-    if (!(romfile = fopen(argv[1], "rb+")))
+    if (!(romfile = fopen(argv[1], "rb")))
     {
-        puts("Could not open file");
+        puts("Could not open input file");
         puts(strerror(errno));
 		scanf("%*s");
         return 1;
@@ -266,12 +267,26 @@ int main(int argc, char **argv)
 	}
 
 
-	// Flush all changes to file
-	fseek(romfile, 0, SEEK_SET);
-	fwrite(rom, 1, romsize, romfile);
-    fflush(romfile);
+	// Flush all changes to new file
+    char *prefix = mode ? "keypad_" : "auto_";
+    size_t original_filename_length = strlen(argv[1]);
+    size_t prefix_length = strlen(prefix);
+    char new_filename[FILENAME_MAX];
+    strncpy(new_filename, prefix, FILENAME_MAX);
+    strncat(new_filename, argv[1], FILENAME_MAX);
+    
+    if (!(outfile = fopen(new_filename, "wb")))
+    {
+        puts("Could not open output file");
+        puts(strerror(errno));
+		scanf("%*s");
+        return 1;
+    }
+    
+    fwrite(rom, 1, romsize, outfile);
+    fflush(outfile);
 
-    puts("Patched successfully. Changes written to file.");
+    printf("Patched successfully. Changes written to %s\n", new_filename);
     scanf("%*s");
 	return 0;
 	
