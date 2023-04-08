@@ -9,7 +9,7 @@ In auto mode, the save will automatically be flushed a few seconds after saving.
 In keypad trigger mode, the save can be flushed by pressing L+R+Start+Select at any time. This mode requires less patching, so may be compatible with more games.
 
 ## Usage
-Run with ROM as the only argument, the ROM will be modified 
+Run with ROM as the only argument, a new ROM will be output
 
 ## Building
 No build script, run the following command and hope it doesn't spit out any errors
