@@ -73,6 +73,10 @@ sram_init_loop:
     strb r4, [r1], # 1
     cmp r1, r2
     blo sram_init_loop
+    
+    # Set bank to 0 for banking-unaware software
+    mov r4, # 0
+    strh r4, [r3]
 
     ldr pc, original_entrypoint_addr
 
