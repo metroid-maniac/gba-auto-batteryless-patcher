@@ -485,6 +485,8 @@ try_intel_write_all_loop:
 try_intel_end:
 
 .ascii "<3 from Maniac"
+# Size of payload
+.hword (.+2)
 
 # patcher program will have to ensure this is actually aligned enough
 # This alignment was chosen so the assembler? linker? doesn't pad more than needed.
