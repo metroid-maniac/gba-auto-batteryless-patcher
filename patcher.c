@@ -50,7 +50,7 @@ int main(int argc, char **argv)
     if (argc != 2)
     {
         puts("Wrong number of args");
-		getchar();
+		scanf("%*s");
         return 1;
     }
 	
@@ -61,7 +61,7 @@ int main(int argc, char **argv)
     {
         puts("Could not open file");
         puts(strerror(errno));
-		getchar();
+		scanf("%*s");
         return 1;
     }
 
@@ -72,7 +72,7 @@ int main(int argc, char **argv)
     if (romsize > sizeof rom)
     {
         puts("ROM too large - not a GBA ROM?");
-		getchar();
+		scanf("%*s");
         return 1;
     }
 
@@ -90,7 +90,7 @@ int main(int argc, char **argv)
     if (memfind(rom, romsize, signature, sizeof signature, 4))
     {
         puts("ROM already patched!");
-		getchar();
+		scanf("%*s");
         return 1;
     }
 
@@ -136,7 +136,7 @@ int main(int argc, char **argv)
 		if (romsize + 0x60000 > 0x2000000)
 		{
 			puts("ROM alraedy max size. Cannot expand. Cannot install payload");
-			getchar();
+            scanf("%*s");
 			return 1;
 		}
 		else
@@ -161,7 +161,7 @@ int main(int argc, char **argv)
 	if (rom[3] != 0xea)
 	{
 		puts("Unexpected entrypoint instruction");
-		getchar();
+		scanf("%*s");
 		return 1;
 	}
 	unsigned long original_entrypoint_offset = rom[0];
@@ -237,7 +237,7 @@ int main(int argc, char **argv)
 		if (!found_write_location)
 		{
 			puts("Could not find a write function to hook. Are you sure the game has save functionality and has been SRAM patched with GBATA?");
-			getchar();
+			scanf("%*s");
 			return 1;
 		}
 	}
@@ -249,7 +249,7 @@ int main(int argc, char **argv)
     fflush(romfile);
 
     puts("Patched successfully. Changes written to file.");
-    getchar();
+    scanf("%*s");
 	return 0;
 	
 }
