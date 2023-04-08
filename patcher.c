@@ -178,67 +178,90 @@ int main(int argc, char **argv)
 
 
 	// Patch any write functions to install the countdown IRQ handler when needed
-	if (!mode) 
     {
 		uint8_t *write_location = NULL;
 		int found_write_location = 0;
 		if (write_location = memfind(rom, romsize, write_sram_signature, sizeof write_sram_signature, 2))
 		{
-			found_write_location = 1;
-			printf("WriteSram identified at offset %lx, patching\n", write_location - rom);
-			memcpy(write_location, thumb_branch_thunk, sizeof thumb_branch_thunk);
-			1[(uint32_t*) write_location] = 0x08000000 + payload_base + WRITE_SRAM_PATCHED[(uint32_t*) payload_bin];
+            found_write_location = 1;
+            if (!mode)
+            {                
+                printf("WriteSram identified at offset %lx, patching\n", write_location - rom);
+                memcpy(write_location, thumb_branch_thunk, sizeof thumb_branch_thunk);
+                1[(uint32_t*) write_location] = 0x08000000 + payload_base + WRITE_SRAM_PATCHED[(uint32_t*) payload_bin];
+            }
             SAVE_SIZE[(uint32_t*) &rom[payload_base]] = 0x8000;
 
 		}
-        
 		if (write_location = memfind(rom, romsize, write_sram_ram_signature, sizeof write_sram_ram_signature, 2))
 		{
-			found_write_location = 1;
-			printf("WriteSramFast identified at offset %lx, patching\n", write_location - rom);
-			memcpy(write_location, arm_branch_thunk, sizeof arm_branch_thunk);
-			2[(uint32_t*) write_location] = 0x08000000 + payload_base + WRITE_SRAM_PATCHED[(uint32_t*) payload_bin];
+            found_write_location = 1;
+            if (!mode)
+            {
+                printf("WriteSramFast identified at offset %lx, patching\n", write_location - rom);
+                memcpy(write_location, arm_branch_thunk, sizeof arm_branch_thunk);
+                2[(uint32_t*) write_location] = 0x08000000 + payload_base + WRITE_SRAM_PATCHED[(uint32_t*) payload_bin];
+            }
             SAVE_SIZE[(uint32_t*) &rom[payload_base]] = 0x8000;
 		}
 		if (write_location = memfind(rom, romsize, write_eeprom_signature, sizeof write_eeprom_signature, 2))
 		{
-			found_write_location = 1;
-			printf("SRAM-patched ProgramEepromDword identified at offset %lx, patching\n", write_location - rom);
-			memcpy(write_location, thumb_branch_thunk, sizeof thumb_branch_thunk);
-			1[(uint32_t*) write_location] = 0x08000000 + payload_base + WRITE_EEPROM_PATCHED[(uint32_t*) payload_bin];
+            found_write_location = 1;
+            if (!mode)
+            {
+                printf("SRAM-patched ProgramEepromDword identified at offset %lx, patching\n", write_location - rom);
+                memcpy(write_location, thumb_branch_thunk, sizeof thumb_branch_thunk);
+                1[(uint32_t*) write_location] = 0x08000000 + payload_base + WRITE_EEPROM_PATCHED[(uint32_t*) payload_bin];
+            }
             // Unable to statically distinguish between EEPROM sizes - assume 64kbit to be safe.
             SAVE_SIZE[(uint32_t*) &rom[payload_base]] = 0x2000;
 		}
 		if (write_location = memfind(rom, romsize, write_flash_signature, sizeof write_flash_signature, 2))
 		{
-			found_write_location = 1;
-			printf("SRAM-patched flash write function 1 identified at offset %lx\n", write_location - rom);
-			memcpy(write_location, thumb_branch_thunk, sizeof thumb_branch_thunk);
-			1[(uint32_t*) write_location] = 0x08000000 + payload_base + WRITE_FLASH_PATCHED[(uint32_t*) payload_bin];
+            found_write_location = 1;
+            if (!mode)
+            {
+                printf("SRAM-patched flash write function 1 identified at offset %lx\n", write_location - rom);
+                memcpy(write_location, thumb_branch_thunk, sizeof thumb_branch_thunk);
+                1[(uint32_t*) write_location] = 0x08000000 + payload_base + WRITE_FLASH_PATCHED[(uint32_t*) payload_bin];
+            }
             SAVE_SIZE[(uint32_t*) &rom[payload_base]] = 0x10000;
 		}
 		if (write_location = memfind(rom, romsize, write_flash2_signature, sizeof write_flash2_signature, 2))
 		{
-			found_write_location = 1;
-			printf("SRAM-patched flash write function2  identified at offset %lx\n", write_location - rom);
-			memcpy(write_location, thumb_branch_thunk, sizeof thumb_branch_thunk);
-			1[(uint32_t*) write_location] = 0x08000000 + payload_base + WRITE_FLASH_PATCHED[(uint32_t*) payload_bin];
+            found_write_location = 1;
+            if (!mode)
+            {
+                printf("SRAM-patched flash write function2  identified at offset %lx\n", write_location - rom);
+                memcpy(write_location, thumb_branch_thunk, sizeof thumb_branch_thunk);
+                1[(uint32_t*) write_location] = 0x08000000 + payload_base + WRITE_FLASH_PATCHED[(uint32_t*) payload_bin];
+            }
             SAVE_SIZE[(uint32_t*) &rom[payload_base]] = 0x10000;
 		}
 		if (write_location = memfind(rom, romsize, write_flash3_signature, sizeof write_flash3_signature, 2))
 		{
-			found_write_location = 1;
-			printf("Flash write function 3 identified at offset %lx\n", write_location - rom);
-			memcpy(write_location, thumb_branch_thunk, sizeof thumb_branch_thunk);
-			1[(uint32_t*) write_location] = 0x08000000 + payload_base + WRITE_FLASH_PATCHED[(uint32_t*) payload_bin];
+            found_write_location = 1;
+            if (!mode)
+            {
+                printf("Flash write function 3 identified at offset %lx\n", write_location - rom);
+                memcpy(write_location, thumb_branch_thunk, sizeof thumb_branch_thunk);
+                1[(uint32_t*) write_location] = 0x08000000 + payload_base + WRITE_FLASH_PATCHED[(uint32_t*) payload_bin];
+            }
             // Assumed this signature only appears in FLASH1M
             SAVE_SIZE[(uint32_t*) &rom[payload_base]] = 0x20000;
 		}
 		if (!found_write_location)
 		{
-			puts("Could not find a write function to hook. Are you sure the game has save functionality and has been SRAM patched with GBATA?");
-			scanf("%*s");
-			return 1;
+            if (!mode)
+            {
+                puts("Could not find a write function to hook. Are you sure the game has save functionality and has been SRAM patched with GBATA?");
+                scanf("%*s");
+                return 1;
+            }
+            else
+            {
+                puts("Unsure what save type this is. Defaulting to 128KB save");
+            }
 		}
 	}
 
