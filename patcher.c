@@ -62,6 +62,14 @@ int main(int argc, char **argv)
     }
 	
 	memset(rom, 0x00ff, sizeof rom);
+    
+    size_t romfilename_len = strlen(argv[1]);
+    if (romfilename_len < 4 || strcmp(argv[1] + romfilename_len - 4, ".gba"))
+    {
+        puts("File does not have .gba extension.");
+		scanf("%*s");
+        return 1;
+    }
 
     // Open ROM file
     if (!(romfile = fopen(argv[1], "rb")))
@@ -287,12 +295,11 @@ int main(int argc, char **argv)
 
 
 	// Flush all changes to new file
-    char *prefix = mode ? "keypad_" : "auto_";
-    size_t original_filename_length = strlen(argv[1]);
-    size_t prefix_length = strlen(prefix);
+    char *suffix = mode ? "_keypad.gba" : "_auto.gba";
+    size_t suffix_length = strlen(suffix);
     char new_filename[FILENAME_MAX];
-    strncpy(new_filename, prefix, FILENAME_MAX);
-    strncat(new_filename, argv[1], FILENAME_MAX);
+    strncpy(new_filename, argv[1], FILENAME_MAX);
+    strncpy(new_filename + romfilename_len - 4, suffix, FILENAME_MAX);
     
     if (!(outfile = fopen(new_filename, "wb")))
     {
