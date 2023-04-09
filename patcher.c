@@ -20,6 +20,7 @@ enum payload_offsets {
     WRITE_SRAM_PATCHED,
     WRITE_EEPROM_PATCHED,
     WRITE_FLASH_PATCHED,
+    WRITE_EEPROM_V111_POSTHOOK
 };
 
 // ldr r3, [pc, # 0]; bx r3
@@ -33,6 +34,11 @@ static unsigned char write_flash_signature[] = { 0x70, 0xB5, 0x00, 0x03, 0x0A, 0
 static unsigned char write_flash2_signature[] = { 0x7C, 0xB5, 0x90, 0xB0, 0x00, 0x03, 0x0A, 0x1C, 0xE0, 0x21, 0x09, 0x05, 0x09, 0x18, 0x01, 0x23};
 // sig present without SRAM patch
 static unsigned char write_flash3_signature[] = { 0xF0, 0xB5, 0x90, 0xB0, 0x0F, 0x1C, 0x00, 0x04, 0x04, 0x0C, 0x03, 0x48, 0x00, 0x68, 0x40, 0x89 };
+
+// This one is a pure nightmare. You are welcome to try doing this better, since it will probably trigger overeagerly...
+// ldr r0, [pc, #0x1c]; ldr r1, [pc, #0x1c], bx r1
+static unsigned char write_eepromv11_epilogue_patch[] = { 0x07, 0x49, 0x08, 0x47 };
+static unsigned char write_eepromv111_signature[] = { 0x0A, 0x88, 0x80, 0x21, 0x09, 0x06, 0x0A, 0x43, 0x02, 0x60, 0x07, 0x48, 0x00, 0x47, 0x00, 0x00 };
 
 static uint8_t *memfind(uint8_t *haystack, size_t haystack_size, uint8_t *needle, size_t needle_size, int stride)
 {
@@ -251,6 +257,19 @@ int main(int argc, char **argv)
             // Assumed this signature only appears in FLASH1M
             SAVE_SIZE[(uint32_t*) &rom[payload_base]] = 0x20000;
 		}
+        if (write_location = memfind(rom, romsize, write_eepromv111_signature, sizeof write_eepromv111_signature, 2))
+        {
+            found_write_location = 1;
+            if (!mode)
+            {
+                printf("SRAM-patched EEPROM_V111 epilogue identified at offset %lx\n", write_location - rom);
+                memcpy(write_location + 12, write_eepromv11_epilogue_patch, sizeof write_eepromv11_epilogue_patch);
+                11[(uint32_t*) write_location] = 0x08000000 + payload_base + WRITE_EEPROM_V111_POSTHOOK[(uint32_t*) payload_bin];
+            }
+
+            // Unable to statically distinguish between EEPROM sizes - assume 64kbit to be safe.
+            SAVE_SIZE[(uint32_t*) &rom[payload_base]] = 0x2000;
+        }
 		if (!found_write_location)
 		{
             if (!mode)

@@ -12,6 +12,7 @@ save_size:
     .word write_sram_patched + 1
 	.word write_eeprom_patched + 1
 	.word write_flash_patched + 1
+    .word write_eeprom_v111_posthook + 1
 
 .thumb
 # If you are writing a manual batteryless save patch, you can branch here
@@ -99,6 +100,7 @@ write_flash_patched:
 # r0 = src, r1 = dst, r2 = size. Check if change before writing, only install irq if change
 # unoptimised as hell, but I don't care for now.
 write_sram_patched:
+    push {lr}
     push {r4, r5, r6, r7}
 
     # Disable interrupts while writing - just in case
@@ -134,27 +136,20 @@ write_sram_patched_loop:
     beq write_sram_patched_exit
 
     # Install the chosen irq handler and initialise countdown value if needed.
-    mov r1, # 0x04
-    lsl r1, # 24
-    sub r1, # 0x10
     mov r0, pc
     sub r0, # . + 2 - flush_mode
     ldrh r0, [r0]
     cmp r0, # 0
     bne write_sram_patched_exit
     
-    adr r0, countdown_irq_handler
-    mov r2, # 101
-    strh r2, [r1, # 0x0a]
-    str r0, [r1, # 0x0c]
-    # Set green swap as a visual indicator that the countdown has begun
-    strh r2, [r1, # 0x12]
+    bl install_countdown_handler
 
 write_sram_patched_exit:
     strh r7, [r6]
     mov r0, # 0
     pop {r4, r5, r6, r7}
-    bx lr
+    pop {r1}
+    bx r1
 
     .ltorg
 
@@ -183,7 +178,24 @@ write_eeprom_patched_byte_swap_loop:
 	
 	add sp, # 8
 	pop {r4, pc}
-	
+    
+write_eeprom_v111_posthook:
+    push {r0}
+    bl install_countdown_handler
+    pop {r0}
+    bx r0
+    
+install_countdown_handler:
+    adr r0, countdown_irq_handler
+    mov r1, # 0x04
+    lsl r1, # 24
+    sub r1, # 0x10
+    mov r2, # 101
+    strh r2, [r1, # 0x0a]
+    str r0, [r1, # 0x0c]
+    # Set green swap as a visual indicator that the countdown has begun
+    strh r2, [r1, # 0x12]
+    bx lr
 
 .arm
 # IRQ handlers are called with 0x04000000 in r0 which is handy!
