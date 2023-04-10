@@ -4,7 +4,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "payload.h"
+#include "payload_bin.h"
 
 FILE *romfile;
 FILE *outfile;
