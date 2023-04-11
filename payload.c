@@ -1,21 +1,16 @@
-#define DATA __attribute__((section(".data"))) static volatile
+asm(R"(.text
 
-void patched_entrypoint(void);
-void write_sram_patched(unsigned char *src, unsigned char *dst, unsigned size);
-void write_eeprom_patched(unsigned address, unsigned char *src);
-void write_flash_patched(unsigned sector, unsigned char *src);
-void write_eeprom_v111_posthook(void *retaddr);
-
-DATA void (*original_entrypoint)(void) = (void(*)(void)) 0x080000c0;
-DATA unsigned flush_mode = 0;
-DATA unsigned save_size = 0x20000;
-DATA void (*patched_entrypoint_)(void) = patched_entrypoint;
-DATA void (*write_sram_patched_)(unsigned char *src, unsigned char *dst, unsigned size) = &write_sram_patched;
-DATA void (*write_eeprom_patched_)(unsigned address, unsigned char *src) = &write_eeprom_patched;
-DATA void (*write_flash_patched_)(unsigned sector, unsigned char *src) = &write_flash_patched;
-DATA void (*write_eeprom_v111_posthook_)(void *retaddr) = &write_eeprom_v111_posthook;
-
-asm(R"(
+original_entrypoint:
+    .word 0x080000c0
+flush_mode:
+    .word 0
+save_size:
+    .word 0x20000
+    .word patched_entrypoint
+    .word write_sram_patched + 1
+	.word write_eeprom_patched + 1
+	.word write_flash_patched + 1
+    .word write_eeprom_v111_posthook + 1
 
 .thumb
 # If you are writing a manual batteryless save patch, you can branch here
