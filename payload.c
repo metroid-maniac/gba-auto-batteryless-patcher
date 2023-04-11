@@ -503,14 +503,13 @@ try_intel_write_all_loop:
     bx lr
 try_intel_end:
 
+# The following footer must come last.
+.balign 4
 .ascii "<3 from Maniac"
 # Size of payload
 .hword (.+2)
-
-# patcher program will have to ensure this is actually aligned enough
-# This alignment was chosen so the assembler? linker? doesn't pad more than needed.
 .balign 4
     flash_save_sector:
-
+.end
 
 )");
