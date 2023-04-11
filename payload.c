@@ -10,16 +10,18 @@ DATA void (*original_entrypoint)(void) = (void(*)(void)) 0x080000c0;
 DATA unsigned flush_mode = 0;
 DATA unsigned save_size = 0x20000;
 DATA void (*patched_entrypoint_)(void) = patched_entrypoint;
-DATA void (*write_sram_patched_)(unsigned char *src, unsigned char *dst, unsigned size) = &write_sram_patched + 1;
-DATA void (*write_eeprom_patched_)(unsigned address, unsigned char *src) = &write_eeprom_patched + 1;
-DATA void (*write_flash_patched_)(unsigned sector, unsigned char *src) = &write_flash_patched + 1;
-DATA void (*write_eeprom_v111_posthook_)(void *retaddr) = &write_eeprom_v111_posthook + 1;
+DATA void (*write_sram_patched_)(unsigned char *src, unsigned char *dst, unsigned size) = &write_sram_patched;
+DATA void (*write_eeprom_patched_)(unsigned address, unsigned char *src) = &write_eeprom_patched;
+DATA void (*write_flash_patched_)(unsigned sector, unsigned char *src) = &write_flash_patched;
+DATA void (*write_eeprom_v111_posthook_)(void *retaddr) = &write_eeprom_v111_posthook;
 
 asm(R"(
 
 .thumb
 # If you are writing a manual batteryless save patch, you can branch here
 # Return via LR, only LR is trashed
+
+.type flush_sram_manual_entry, %function
 flush_sram_manual_entry:
     push {r0, r1, r2, r3, r4}
     push {lr}
@@ -86,6 +88,8 @@ sram_init_loop:
 
 .thumb
 # r0 = sector number, # r1 = source data 0x1000 bytes
+
+.type write_flash_patched, %function
 write_flash_patched:
     lsl r0, # 12
 	mov r2, # 0x0e
@@ -102,6 +106,8 @@ write_flash_patched:
 
 # r0 = src, r1 = dst, r2 = size. Check if change before writing, only install irq if change
 # unoptimised as hell, but I don't care for now.
+
+.type write_sram_patched, %function
 write_sram_patched:
     push {lr}
     push {r4, r5, r6, r7}
@@ -157,6 +163,8 @@ write_sram_patched_exit:
     .ltorg
 
 # r0 = eeprom address, r1 = src data (needs byte swapping, 8 bytes)
+
+.type write_eeprom_patched, %function
 write_eeprom_patched:
     push {r4, lr}
 	mov r2, r1
@@ -181,7 +189,9 @@ write_eeprom_patched_byte_swap_loop:
 	
 	add sp, # 8
 	pop {r4, pc}
-    
+
+
+.type write_eeprom_patched, %function
 write_eeprom_v111_posthook:
     push {r0}
     bl install_countdown_handler
