@@ -299,7 +299,7 @@ int main(int argc, char **argv)
     size_t suffix_length = strlen(suffix);
     char new_filename[FILENAME_MAX];
     strncpy(new_filename, argv[1], FILENAME_MAX);
-    strncpy(new_filename + romfilename_len - 4, suffix, FILENAME_MAX);
+    strncpy(new_filename + romfilename_len - 4, suffix, strlen(suffix));
     
     if (!(outfile = fopen(new_filename, "wb")))
     {
