@@ -14,8 +14,7 @@ Run with ROM as the only argument, a new ROM will be output
 ## Building
 No build script, run the following command and hope it doesn't spit out any errors
 
-`$DEVKITARM/bin/arm-none-eabi-as -mcpu=arm7tdmi payload.s -o payload.elf; $DEVKITARM/bin/arm-none-eabi-objcopy -O binary payload.elf payload.bin; xxd -i payload.bin > payload.c ; gcc -g *.c`
-
+`$DEVKITARM/bin/arm-none-eabi-gcc -mcpu=arm7tdmi -nostartfiles -nodefaultlibs -mthumb -fPIE -Os -fno-toplevel-reorder payload.c -T payload.ld -o payload.elf; $DEVKITARM/bin/arm-none-eabi-objcopy -O binary payload.elf payload.bin; xxd -i payload.bin > payload_bin.c ; gcc -g patcher.c payload_bin.c`
 ## Credits
 Written by [metroid-maniac](https://github.com/metroid-maniac/)
 
@@ -24,3 +23,4 @@ Thanks to
 - [Fexean](https://gitlab.com/Fexean) for [GBABF](https://gitlab.com/Fexean/gbabf)
 - [vrodin](https://github.com/vrodin) for [Burn2Slot](https://github.com/vrodin/Burn2Slot)
 - [Lesserkuma](https://github.com/lesserkuma) for [FlashGBX](https://github.com/lesserkuma/FlashGBX) and batteryless versions of [Goomba Color](https://github.com/lesserkuma/goombacolor) and [PocketNES](https://github.com/lesserkuma/PocketNES)
+- [Ausar](https://github.com/ArcheyChen) for helping to port the payload to C.
