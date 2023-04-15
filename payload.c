@@ -1,7 +1,8 @@
 #define AGB_ROM  ((unsigned char*)0x8000000)
-	#define AGB_SRAM ((unsigned char*)0xE000000)
+	#define AGB_SRAM ((volatile unsigned char*)0xE000000)
     #define SRAM_SIZE 64
 	#define AGB_SRAM_SIZE SRAM_SIZE*1024
+    #define SRAM_BANK_SEL (*(volatile unsigned short*) 0x09000000)
     
 	#define _FLASH_WRITE(pa, pd) { *(((unsigned short *)AGB_ROM)+((pa)/2)) = pd; __asm("nop"); }
 
@@ -428,7 +429,10 @@ __attribute__((target("arm"))) void flush_sram_ram(unsigned sa, unsigned save_si
 		_FLASH_WRITE(sa, 0xFF);
 		
 		// Write data
-		for (int i=0; i<AGB_SRAM_SIZE; i+=2) {
+        SRAM_BANK_SEL = 0;
+		for (int i=0; i<save_size; i+=2) {
+            if (i == AGB_SRAM_SIZE)
+                SRAM_BANK_SEL = 1;
 			_FLASH_WRITE(sa+i, 0x40);
 			_FLASH_WRITE(sa+i, (*(unsigned char *)(AGB_SRAM+i+1)) << 8 | (*(unsigned char *)(AGB_SRAM+i)));
 			while (1) {
@@ -458,7 +462,10 @@ __attribute__((target("arm"))) void flush_sram_ram(unsigned sa, unsigned save_si
 		_FLASH_WRITE(sa, 0xF0);
 		
 		// Write data
-		for (int i=0; i<AGB_SRAM_SIZE; i+=2) {
+        SRAM_BANK_SEL = 0;
+		for (int i=0; i<save_size; i+=2) {
+            if (i == AGB_SRAM_SIZE)
+                SRAM_BANK_SEL = 1;
 			_FLASH_WRITE(0xAAA, 0xA9);
 			_FLASH_WRITE(0x555, 0x56);
 			_FLASH_WRITE(0xAAA, 0xA0);
@@ -490,7 +497,10 @@ __attribute__((target("arm"))) void flush_sram_ram(unsigned sa, unsigned save_si
 		_FLASH_WRITE(sa, 0xF0);
 		
 		// Write data
-		for (int i=0; i<AGB_SRAM_SIZE; i+=2) {
+        SRAM_BANK_SEL = 0;
+		for (int i=0; i<save_size; i+=2) {
+            if (i == AGB_SRAM_SIZE)
+                SRAM_BANK_SEL = 1;
 			_FLASH_WRITE(0xAAA, 0xAA);
 			_FLASH_WRITE(0x555, 0x55);
 			_FLASH_WRITE(0xAAA, 0xA0);
@@ -521,7 +531,10 @@ __attribute__((target("arm"))) void flush_sram_ram(unsigned sa, unsigned save_si
 		
 		// Write data
 		int c = 0;
+        SRAM_BANK_SEL = 0;
 		while (c < AGB_SRAM_SIZE) {
+            if (c == AGB_SRAM_SIZE)
+                SRAM_BANK_SEL = 1;
 			_FLASH_WRITE(sa+c, 0xEA);
 			while (1) {
 				__asm("nop");
