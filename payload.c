@@ -382,9 +382,11 @@ __attribute__((target("arm"))) void flush_sram_ram(unsigned sa, unsigned save_si
 		if (data != 0x96) {
 			//resume_interrupts();
 			flash_type = 4;
+            goto identified;
 		}
 		//resume_interrupts();
 		flash_type = 1;
+        goto identified;
 	}
 	
 	// Type 2
@@ -397,6 +399,7 @@ __attribute__((target("arm"))) void flush_sram_ram(unsigned sa, unsigned save_si
 	if (rom_data != data) {
 		//resume_interrupts();
 		flash_type = 2;
+        goto identified;
 	}
 	
 	// Type 3
@@ -409,7 +412,10 @@ __attribute__((target("arm"))) void flush_sram_ram(unsigned sa, unsigned save_si
 	if (rom_data != data) {
 		//resume_interrupts();
 		flash_type = 3;
+        goto identified;
 	}
+    
+    identified:
     
     if (flash_type == 0) return;
 	
