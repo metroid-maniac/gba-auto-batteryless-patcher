@@ -416,6 +416,11 @@ __attribute__((target("arm"))) void flush_sram_ram(unsigned sa, unsigned save_si
 	}
     
     identified:
+    // wait 1 or 2 frames
+    while (*(volatile unsigned short*) 0x04000006)
+    {}
+    while (*(volatile unsigned short*) 0x04000006)
+    {}
     
     if (flash_type == 0) return;
 	
