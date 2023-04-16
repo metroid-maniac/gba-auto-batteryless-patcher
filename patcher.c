@@ -122,14 +122,13 @@ int main(int argc, char **argv)
         }
     }
 
-    // Find a location to insert the payload immediately before a 0x20000 byte sector
+    // Find a location to insert the payload immediately before a 0x40000 byte sector
 	int payload_base;
-	// reserve the last 128KB of ROM because some flash chips seem to have different sector topology there
-    for (payload_base = romsize - 0x40000 - payload_bin_len; payload_base >= 0; payload_base -= 0x20000)
+    for (payload_base = romsize - 0x40000 - payload_bin_len; payload_base >= 0; payload_base -= 0x40000)
     {
         int is_all_zeroes = 1;
         int is_all_ones = 1;
-        for (int i = 0; i < 0x20000 + payload_bin_len; ++i)
+        for (int i = 0; i < 0x40000 + payload_bin_len; ++i)
         {
             if (rom[payload_base+i] != 0)
             {
@@ -148,7 +147,7 @@ int main(int argc, char **argv)
 	if (payload_base < 0)
 	{
 		puts("ROM too small to install payload.");
-		if (romsize + 0x60000 > 0x2000000)
+		if (romsize + 0x80000 > 0x2000000)
 		{
 			puts("ROM alraedy max size. Cannot expand. Cannot install payload");
             scanf("%*s");
@@ -157,7 +156,7 @@ int main(int argc, char **argv)
 		else
 		{
 			puts("Expanding ROM");
-			romsize += 0x60000;
+			romsize += 0x80000;
 			payload_base = romsize - 0x40000 - payload_bin_len;
 		}
 	}
