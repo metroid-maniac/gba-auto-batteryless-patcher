@@ -538,7 +538,7 @@ __attribute__((target("arm"))) void flush_sram_ram(unsigned sa, unsigned save_si
 		// Write data
 		int c = 0;
         SRAM_BANK_SEL = 0;
-		while (c < AGB_SRAM_SIZE) {
+		while (c < save_size) {
             if (c == AGB_SRAM_SIZE)
                 SRAM_BANK_SEL = 1;
 			_FLASH_WRITE(sa+c, 0xEA);
