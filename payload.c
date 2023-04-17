@@ -416,14 +416,12 @@ __attribute__((target("arm"))) void flush_sram_ram(unsigned sa, unsigned save_si
 	}
     
     identified:
-    // wait 1 or 2 frames
-    while (*(volatile unsigned short*) 0x04000006)
-    {}
-    while (*(volatile unsigned short*) 0x04000006)
-    {}
     
     if (flash_type == 0) return;
 	
+    for (volatile int i = 0; i < 128; ++i)
+        __asm("nop");
+    
 	if (flash_type == 1) {
 		// Erase flash sector
 		_FLASH_WRITE(sa, 0xFF);
