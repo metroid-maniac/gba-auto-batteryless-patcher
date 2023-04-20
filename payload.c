@@ -419,7 +419,7 @@ __attribute__((target("arm"))) void flush_sram_ram(unsigned sa, unsigned save_si
     
     if (flash_type == 0) return;
 	
-    for (volatile int i = 0; i < 128; ++i)
+    for (volatile int i = 0; i < 1024; ++i)
         __asm("nop");
     
 	if (flash_type == 1) {
