@@ -73,6 +73,9 @@ patched_entrypoint:
     ldr r2, save_size
     add r2, r1
     mov r3, # 0x09000000
+    # Lock 369in1 mapper
+    mov r4, # 0x80
+    strb r4, [r1, # 3]
 sram_init_loop:
     lsr r4, r1, # 16
     and r4, # 1
