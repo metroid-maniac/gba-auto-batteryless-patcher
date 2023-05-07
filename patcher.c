@@ -191,11 +191,12 @@ int main(int argc, char **argv)
 	0[(uint32_t*) rom] = 0xea000000 | (new_entrypoint_address - 0x08000008) >> 2;
 
 
-	// Patch any write functions to install the countdown IRQ handler when needed
+	// Patch any write functions to install the countdown IRQ handler after calling any save function
+    int found_write_location = 0;
+    for (uint8_t *write_location = rom; write_location < rom + romsize - 64; write_location += 2)
     {
-		uint8_t *write_location = NULL;
-		int found_write_location = 0;
-		if (write_location = memfind(rom, romsize, write_sram_signature, sizeof write_sram_signature, 2))
+        int rom_offset = write_location - rom;
+		if (!memcmp(write_location, write_sram_signature, sizeof write_sram_signature))
 		{
             found_write_location = 1;
             if (!mode)
@@ -207,7 +208,7 @@ int main(int argc, char **argv)
             SAVE_SIZE[(uint32_t*) &rom[payload_base]] = 0x8000;
 
 		}
-		if (write_location = memfind(rom, romsize, write_sram_ram_signature, sizeof write_sram_ram_signature, 2))
+		if (!memcmp(write_location, write_sram_ram_signature, sizeof write_sram_ram_signature))
 		{
             found_write_location = 1;
             if (!mode)
@@ -218,7 +219,7 @@ int main(int argc, char **argv)
             }
             SAVE_SIZE[(uint32_t*) &rom[payload_base]] = 0x8000;
 		}
-		if (write_location = memfind(rom, romsize, write_eeprom_signature, sizeof write_eeprom_signature, 2))
+		if (!memcmp(write_location, write_eeprom_signature, sizeof write_eeprom_signature))
 		{
             found_write_location = 1;
             if (!mode)
@@ -230,7 +231,7 @@ int main(int argc, char **argv)
             // Unable to statically distinguish between EEPROM sizes - assume 64kbit to be safe.
             SAVE_SIZE[(uint32_t*) &rom[payload_base]] = 0x2000;
 		}
-		if (write_location = memfind(rom, romsize, write_flash_signature, sizeof write_flash_signature, 2))
+		if (!memcmp(write_location, write_flash_signature, sizeof write_flash_signature))
 		{
             found_write_location = 1;
             if (!mode)
@@ -241,7 +242,7 @@ int main(int argc, char **argv)
             }
             SAVE_SIZE[(uint32_t*) &rom[payload_base]] = 0x10000;
 		}
-		if (write_location = memfind(rom, romsize, write_flash2_signature, sizeof write_flash2_signature, 2))
+		if (!memcmp(write_location, write_flash2_signature, sizeof write_flash2_signature))
 		{
             found_write_location = 1;
             if (!mode)
@@ -252,7 +253,7 @@ int main(int argc, char **argv)
             }
             SAVE_SIZE[(uint32_t*) &rom[payload_base]] = 0x10000;
 		}
-		if (write_location = memfind(rom, romsize, write_flash3_signature, sizeof write_flash3_signature, 2))
+		if (!memcmp(write_location, write_flash3_signature, sizeof write_flash3_signature))
 		{
             found_write_location = 1;
             if (!mode)
@@ -264,7 +265,7 @@ int main(int argc, char **argv)
             // Assumed this signature only appears in FLASH1M
             SAVE_SIZE[(uint32_t*) &rom[payload_base]] = 0x20000;
 		}
-        if (write_location = memfind(rom, romsize, write_eepromv111_signature, sizeof write_eepromv111_signature, 2))
+        if (!memcmp(write_location, write_eepromv111_signature, sizeof write_eepromv111_signature))
         {
             found_write_location = 1;
             if (!mode)
@@ -277,20 +278,20 @@ int main(int argc, char **argv)
             // Unable to statically distinguish between EEPROM sizes - assume 64kbit to be safe.
             SAVE_SIZE[(uint32_t*) &rom[payload_base]] = 0x2000;
         }
-		if (!found_write_location)
-		{
-            if (!mode)
-            {
-                puts("Could not find a write function to hook. Are you sure the game has save functionality and has been SRAM patched with GBATA?");
-                scanf("%*s");
-                return 1;
-            }
-            else
-            {
-                puts("Unsure what save type this is. Defaulting to 128KB save");
-            }
-		}
 	}
+    if (!found_write_location)
+    {
+        if (!mode)
+        {
+            puts("Could not find a write function to hook. Are you sure the game has save functionality and has been SRAM patched with GBATA?");
+            scanf("%*s");
+            return 1;
+        }
+        else
+        {
+            puts("Unsure what save type this is. Defaulting to 128KB save");
+        }
+    }
 
 
 	// Flush all changes to new file
