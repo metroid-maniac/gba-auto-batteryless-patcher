@@ -65,7 +65,7 @@ int main(int argc, char **argv)
 	memset(rom, 0x00ff, sizeof rom);
     
     size_t romfilename_len = strlen(argv[1]);
-    if (romfilename_len < 4 || strcmp(argv[1] + romfilename_len - 4, ".gba"))
+    if (romfilename_len < 4 || strcasecmp(argv[1] + romfilename_len - 4, ".gba"))
     {
         puts("File does not have .gba extension.");
 		scanf("%*s");
