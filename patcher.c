@@ -103,7 +103,7 @@ int main(int argc, char **argv)
     fread(rom, 1, romsize, romfile);
 
     // Check if ROM already patched.
-    if (memfind(rom, romsize, signature, sizeof signature, 4))
+    if (memfind(rom, romsize, signature, sizeof signature - 1, 4))
     {
         puts("ROM already patched!");
 		scanf("%*s");
