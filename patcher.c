@@ -6,6 +6,10 @@
 
 #include "payload_bin.h"
 
+#ifdef _MSC_VER
+#define strcasecmp _stricmp
+#endif
+
 FILE *romfile;
 FILE *outfile;
 uint32_t romsize;
