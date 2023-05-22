@@ -114,13 +114,21 @@ int main(int argc, char **argv)
     uint8_t old_irq_addr[4] = { 0xfc, 0x7f, 0x00, 0x03 };
     uint8_t new_irq_addr[4] = { 0xf4, 0x7f, 0x00, 0x03 };
 
+    int found_irq = 0;
     for (uint8_t *p = rom; p < rom + romsize; p += 4)
     {
         if (!memcmp(p, old_irq_addr, sizeof old_irq_addr))
         {
+            ++found_irq;
 			printf("Found a reference to the IRQ handler address at %lx, patching\n", p - rom);
             memcpy(p, new_irq_addr, sizeof new_irq_addr);
         }
+    }
+    if (!found_irq)
+    {
+        puts("Could not find any reference to the IRQ handler. Has the ROM already been patched?");
+        scanf("%*s");
+        return 1;
     }
 
     // Find a location to insert the payload immediately before a 0x40000 byte sector
