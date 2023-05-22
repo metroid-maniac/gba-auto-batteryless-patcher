@@ -293,6 +293,7 @@ idle_irq_handler:
 
 # Ensure interrupts are disabled and there is plenty of stack space before calling
 flush_sram:
+    mov r0, # 0x04000000
     # save sound state then disable it
     ldrh r2, [r0, # 0x0080]
     ldrh r3, [r0, # 0x0084]
