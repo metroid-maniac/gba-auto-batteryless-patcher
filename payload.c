@@ -355,15 +355,16 @@ run_from_ram_loop:
     cmp r2, r3
     bne run_from_ram_loop
     
+    add r2, sp, # 1
     mov lr, pc
-    bx sp
+    bx r2
     
     mov sp, r4
     pop {r4, r5, lr}
     bx lr
 )");
 
-__attribute__((target("arm"))) void flush_sram_ram(unsigned sa, unsigned save_size)
+void flush_sram_ram(unsigned sa, unsigned save_size)
 {
     unsigned flash_type = 0;
     unsigned rom_data, data;
