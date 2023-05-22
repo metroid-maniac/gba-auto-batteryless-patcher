@@ -105,7 +105,7 @@ int main(int argc, char **argv)
     // Check if ROM already patched.
     if (memfind(rom, romsize, signature, sizeof signature - 1, 4))
     {
-        puts("ROM already patched!");
+        puts("Signature found. ROM already patched!");
 		scanf("%*s");
         return 1;
     }
