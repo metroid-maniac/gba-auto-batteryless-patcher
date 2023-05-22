@@ -317,13 +317,43 @@ flush_sram:
     push {lr}
     
     # Try flushing for various flash chips
-    adrl r0, flash_save_sector
-    ldr r1, save_size
-    adr r2, flush_sram_ram
-    adrl r3, flush_sram_ram_end
+    push {r4, r5, r6, r7}
+    adrl r4, flash_save_sector
+    sub r4, # 0x08000000
+    ldr r5, save_size
+    adr r6, flash_fn_table 
+    adr r7, original_entrypoint 
+    
+try_flash:
+
+    ldm r6!, {r2, r3}
+    cmp r2, # 0
+    beq flush_sram_done
+    add r2, r7
+    add r3, r7
+    bl run_from_ram
+    cmp r0, #0
+    bne found_flash
+    add r6, # 16
+    b try_flash
+    
+found_flash:
+    ldm r6!, {r2, r3}
+    mov r0, r4
+    mov r1, r5
+    add r2, r7
+    add r3, r7
+    bl run_from_ram
+    ldm r6!, {r2, r3}
+    mov r0, r4
+    mov r1, r5
+    add r2, r7
+    add r3, r7
     bl run_from_ram
 
 flush_sram_done:
+    pop {r4, r5, r6, r7}
+
     pop {lr}
     mov r0, #0x04000000
 
@@ -344,10 +374,38 @@ flush_sram_done:
     strh r2, [r0, # 0x0080]
 
     bx lr
+    
+flash_fn_table:
+.word identify_flash_1
+.word identify_flash_1_end
+.word erase_flash_1
+.word erase_flash_1_end
+.word program_flash_1
+.word program_flash_1_end
+.word identify_flash_4
+.word identify_flash_4_end
+.word erase_flash_4
+.word erase_flash_4_end
+.word program_flash_4 
+.word program_flash_4_end
+.word identify_flash_2
+.word identify_flash_2_end
+.word erase_flash_2
+.word erase_flash_2_end
+.word program_flash_2
+.word program_flash_2_end
+.word identify_flash_3
+.word identify_flash_3_end
+.word erase_flash_3 
+.word erase_flash_3_end
+.word program_flash_3
+.word program_flash_3_end
+.zero 12
 
 run_from_ram:
     push {r4, r5, lr}
     mov r4, sp
+    bic r2, # 1
     
 run_from_ram_loop:    
     ldr r5, [r3, # -4]!
@@ -364,12 +422,297 @@ run_from_ram_loop:
     bx lr
 )");
 
+int identify_flash_1()
+{
+    unsigned rom_data, data;
+	//stop_dma_interrupts();
+	rom_data = *(unsigned *)AGB_ROM;
+	
+	// Type 1 or 4
+	_FLASH_WRITE(0, 0xFF);
+	_FLASH_WRITE(0, 0x90);
+	data = *(unsigned *)AGB_ROM;
+	_FLASH_WRITE(0, 0xFF);
+	if (rom_data != data) {
+		// Check if the chip is responding to this command
+		// which then needs a different write command later
+		_FLASH_WRITE(0x59, 0x42);
+		data = *(unsigned char *)(AGB_ROM+0xB2);
+		_FLASH_WRITE(0x59, 0x96);
+		_FLASH_WRITE(0, 0xFF);
+		if (data != 0x96) {
+			//resume_interrupts();
+            	
+            for (volatile int i = 0; i < 1024; ++i)
+                __asm("nop");
+            
+            
+			return 0;
+		}
+		//resume_interrupts();
+		return 1;
+	}
+    return 0;
+}
+asm("identify_flash_1_end:");
+
+void erase_flash_1(unsigned sa, unsigned save_size)
+{
+    // Erase flash sector
+    _FLASH_WRITE(sa, 0xFF);
+    _FLASH_WRITE(sa, 0x60);
+    _FLASH_WRITE(sa, 0xD0);
+    _FLASH_WRITE(sa, 0x20);
+    _FLASH_WRITE(sa, 0xD0);
+    while (1) {
+        __asm("nop");
+        if (*(((unsigned short *)AGB_ROM)+(sa/2)) == 0x80) {
+            break;
+        }
+    }
+    _FLASH_WRITE(sa, 0xFF);
+}
+asm("erase_flash_1_end:");
+
+void program_flash_1(unsigned sa, unsigned save_size)
+{    
+    // Write data
+    SRAM_BANK_SEL = 0;
+    for (int i=0; i<save_size; i+=2) {
+        if (i == AGB_SRAM_SIZE)
+            SRAM_BANK_SEL = 1;
+        _FLASH_WRITE(sa+i, 0x40);
+        _FLASH_WRITE(sa+i, (*(unsigned char *)(AGB_SRAM+i+1)) << 8 | (*(unsigned char *)(AGB_SRAM+i)));
+        while (1) {
+            __asm("nop");
+            if (*(((unsigned short *)AGB_ROM)+(sa/2)) == 0x80) {
+                break;
+            }
+        }
+    }
+    _FLASH_WRITE(sa, 0xFF);
+}
+asm("program_flash_1_end:");
+
+int identify_flash_2()
+{
+    unsigned rom_data, data;
+	//stop_dma_interrupts();
+	rom_data = *(unsigned *)AGB_ROM;
+    
+    _FLASH_WRITE(0, 0xF0);
+	_FLASH_WRITE(0xAAA, 0xA9);
+	_FLASH_WRITE(0x555, 0x56);
+	_FLASH_WRITE(0xAAA, 0x90);
+	data = *(unsigned *)AGB_ROM;
+	_FLASH_WRITE(0, 0xF0);
+	if (rom_data != data) {
+		//resume_interrupts();
+		return 1;
+	}
+    return 0;
+}
+asm("identify_flash_2_end:");
+
+void erase_flash_2(unsigned sa, unsigned save_size)
+{
+    // Erase flash sector
+    _FLASH_WRITE(sa, 0xF0);
+    _FLASH_WRITE(0xAAA, 0xA9);
+    _FLASH_WRITE(0x555, 0x56);
+    _FLASH_WRITE(0xAAA, 0x80);
+    _FLASH_WRITE(0xAAA, 0xA9);
+    _FLASH_WRITE(0x555, 0x56);
+    _FLASH_WRITE(sa, 0x30);
+    while (1) {
+        __asm("nop");
+        if (*(((unsigned short *)AGB_ROM)+(sa/2)) == 0xFFFF) {
+            break;
+        }
+    }
+    _FLASH_WRITE(sa, 0xF0);
+}
+asm("erase_flash_2_end:");
+
+void program_flash_2(unsigned sa, unsigned save_size)
+{
+    // Write data
+    SRAM_BANK_SEL = 0;
+    for (int i=0; i<save_size; i+=2) {
+        if (i == AGB_SRAM_SIZE)
+            SRAM_BANK_SEL = 1;
+        _FLASH_WRITE(0xAAA, 0xA9);
+        _FLASH_WRITE(0x555, 0x56);
+        _FLASH_WRITE(0xAAA, 0xA0);
+        _FLASH_WRITE(sa+i, (*(unsigned char *)(AGB_SRAM+i+1)) << 8 | (*(unsigned char *)(AGB_SRAM+i)));
+        while (1) {
+            __asm("nop");
+            if (*(((unsigned short *)AGB_ROM)+((sa+i)/2)) == ((*(unsigned char *)(AGB_SRAM+i+1)) << 8 | (*(unsigned char *)(AGB_SRAM+i)))) {
+                break;
+            }
+        }
+    }
+    _FLASH_WRITE(sa, 0xF0);
+}
+asm("program_flash_2_end:");
+
+int identify_flash_3()
+{
+    unsigned rom_data, data;
+	//stop_dma_interrupts();
+	rom_data = *(unsigned *)AGB_ROM;
+    
+    _FLASH_WRITE(0, 0xF0);
+	_FLASH_WRITE(0xAAA, 0xAA);
+	_FLASH_WRITE(0x555, 0x55);
+	_FLASH_WRITE(0xAAA, 0x90);
+	data = *(unsigned *)AGB_ROM;
+	_FLASH_WRITE(0, 0xF0);
+	if (rom_data != data) {
+		//resume_interrupts();
+        return 1;
+	}
+    return 0;
+}
+asm("identify_flash_3_end:");
+
+void erase_flash_3(unsigned sa, unsigned save_size)
+{
+    // Erase flash sector
+    _FLASH_WRITE(sa, 0xF0);
+    _FLASH_WRITE(0xAAA, 0xAA);
+    _FLASH_WRITE(0x555, 0x55);
+    _FLASH_WRITE(0xAAA, 0x80);
+    _FLASH_WRITE(0xAAA, 0xAA);
+    _FLASH_WRITE(0x555, 0x55);
+    _FLASH_WRITE(sa, 0x30);
+    while (1) {
+        __asm("nop");
+        if (*(((unsigned short *)AGB_ROM)+(sa/2)) == 0xFFFF) {
+            break;
+        }
+    }
+    _FLASH_WRITE(sa, 0xF0);
+}
+asm("erase_flash_3_end:");
+
+void program_flash_3(unsigned sa, unsigned save_size)
+{
+    // Write data
+    SRAM_BANK_SEL = 0;
+    for (int i=0; i<save_size; i+=2) {
+        if (i == AGB_SRAM_SIZE)
+            SRAM_BANK_SEL = 1;
+        _FLASH_WRITE(0xAAA, 0xAA);
+        _FLASH_WRITE(0x555, 0x55);
+        _FLASH_WRITE(0xAAA, 0xA0);
+        _FLASH_WRITE(sa+i, (*(unsigned char *)(AGB_SRAM+i+1)) << 8 | (*(unsigned char *)(AGB_SRAM+i)));
+        while (1) {
+            __asm("nop");
+            if (*(((unsigned short *)AGB_ROM)+((sa+i)/2)) == ((*(unsigned char *)(AGB_SRAM+i+1)) << 8 | (*(unsigned char *)(AGB_SRAM+i)))) {
+                break;
+            }
+        }
+    }
+    _FLASH_WRITE(sa, 0xF0);   
+}
+asm("program_flash_3_end:");
+
+int identify_flash_4()
+{
+    unsigned rom_data, data;
+	//stop_dma_interrupts();
+	rom_data = *(unsigned *)AGB_ROM;
+	
+	// Type 1 or 4
+	_FLASH_WRITE(0, 0xFF);
+	_FLASH_WRITE(0, 0x90);
+	data = *(unsigned *)AGB_ROM;
+	_FLASH_WRITE(0, 0xFF);
+	if (rom_data != data) {
+		// Check if the chip is responding to this command
+		// which then needs a different write command later
+		_FLASH_WRITE(0x59, 0x42);
+		data = *(unsigned char *)(AGB_ROM+0xB2);
+		_FLASH_WRITE(0x59, 0x96);
+		_FLASH_WRITE(0, 0xFF);
+		if (data != 0x96) {
+			//resume_interrupts();
+            
+            for (volatile int i = 0; i < 1024; ++i)
+                __asm("nop");
+            
+			return 1;
+		}
+	}
+    return 0;
+}
+asm("identify_flash_4_end:");
+
+void erase_flash_4(unsigned sa, unsigned save_size)
+{
+    // Erase flash sector
+    _FLASH_WRITE(sa, 0xFF);
+    _FLASH_WRITE(sa, 0x60);
+    _FLASH_WRITE(sa, 0xD0);
+    _FLASH_WRITE(sa, 0x20);
+    _FLASH_WRITE(sa, 0xD0);
+    while (1) {
+        __asm("nop");
+        if ((*(((unsigned short *)AGB_ROM)+(sa/2)) & 0x80) == 0x80) {
+            break;
+        }
+    }
+    _FLASH_WRITE(sa, 0xFF);
+    
+    	
+    for (volatile int i = 0; i < 1024; ++i)
+        __asm("nop");
+}
+asm("erase_flash_4_end:");
+
+void program_flash_4(unsigned sa, unsigned save_size)
+{
+    // Write data
+    int c = 0;
+    SRAM_BANK_SEL = 0;
+    while (c < save_size) {
+        if (c == AGB_SRAM_SIZE)
+            SRAM_BANK_SEL = 1;
+        _FLASH_WRITE(sa+c, 0xEA);
+        while (1) {
+            __asm("nop");
+            if ((*(((unsigned short *)AGB_ROM)+((sa+c)/2)) & 0x80) == 0x80) {
+                break;
+            }
+        }
+        _FLASH_WRITE(sa+c, 0x1FF);
+        for (int i=0; i<1024; i+=2) {
+            _FLASH_WRITE(sa+c+i, (*(unsigned char *)(AGB_SRAM+c+i+1)) << 8 | (*(unsigned char *)(AGB_SRAM+c+i)));
+        }
+        _FLASH_WRITE(sa+c, 0xD0);
+        while (1) {
+            __asm("nop");
+            if ((*(((unsigned short *)AGB_ROM)+((sa+c)/2)) & 0x80) == 0x80) {
+                break;
+            }
+        }
+        _FLASH_WRITE(sa+c, 0xFF);
+        c += 1024;
+    }
+    
+    	
+    for (volatile int i = 0; i < 1024; ++i)
+        __asm("nop");
+}
+asm("program_flash_4_end:");
+
+/*
 void flush_sram_ram(unsigned sa, unsigned save_size)
 {
     unsigned flash_type = 0;
     unsigned rom_data, data;
 	//stop_dma_interrupts();
-	sa -= 0x08000000;
 	rom_data = *(unsigned *)AGB_ROM;
 	
 	// Type 1 or 4
@@ -575,6 +918,7 @@ void flush_sram_ram(unsigned sa, unsigned save_size)
 	//resume_interrupts();
 }
 asm("flush_sram_ram_end:");
+*/
 
 asm(R"(
 # The following footer must come last.
