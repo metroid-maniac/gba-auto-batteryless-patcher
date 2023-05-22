@@ -57,7 +57,7 @@ int main(int argc, char **argv)
 {
     if (argc != 2)
     {
-        puts("Wrong number of args");
+        puts("Wrong number of args. Try dragging and dropping your ROM onto the .exe file in the file browser.");
 		scanf("%*s");
         return 1;
     }
