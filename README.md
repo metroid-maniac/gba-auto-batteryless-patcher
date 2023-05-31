@@ -4,12 +4,14 @@ This program patches a GBA game for batteryless saving (i.e. saving on a bootleg
 
 The game must be SRAM patched before using this program. GBATA or [Flash1M_Repro_SRAM_patcher](https://github.com/bbsan2k/Flash1M_Repro_SRAM_Patcher) can be used depending on the game. The patch contains two modes, which can be selected during patching.
 
-In auto mode, the save will automatically be flushed a few seconds after saving. Until the save completes, the graphics will be purposefully corrupted.
+In auto mode, the save will automatically be flushed a few seconds after the in-game save.
 
 In keypad trigger mode, the save can be flushed by pressing L+R+Start+Select at any time. This mode requires less patching, so may be compatible with more games.
 
+The game will freeze when flushing has started and will unfreeze when flushing has completed.
+
 ## Usage
-Run with ROM as the only argument, a new ROM will be output
+Run with ROM as the only argument, a new ROM will be output. For GUI users, drag the ROM onto the .exe in the file browser.
 
 ## Building
 No build script, run the following command and hope it doesn't spit out any errors
