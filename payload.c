@@ -209,7 +209,7 @@ install_countdown_handler:
     mov r1, # 0x04
     lsl r1, # 24
     sub r1, # 0x10
-    mov r2, # 101
+    mov r2, # 102
     strh r2, [r1, # 0x0a]
     str r0, [r1, # 0x0c]
     # Set green swap as a visual indicator that the countdown has begun
